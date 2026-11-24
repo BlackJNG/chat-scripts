@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         叔叔不约 · 一对一托管助手
 // @namespace    https://shushubuyue.net/
-// @version      3.0.4
+// @version      3.0.5
 // @changelog    3.0.1 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    3.0.2 更新地址切换到 gh-proxy.org
 // @changelog    3.0.3 接入 APP 桥 GM4W + 女生匹配红色日志 + 女生统计；DOM 版无消息回调，不推 msg 事件
 // @changelog    3.0.4 面板：日志移到选项上方、复选框置底；日志最新在最上（40 行可滚）
+// @changelog    3.0.5 日志配色参数兼容（无新增行为）
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%8F%94%E5%8F%94%E4%B8%8D%E7%BA%A6%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%8F%94%E5%8F%94%E4%B8%8D%E7%BA%A6%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  叔叔不约（shushubuyue.net/.com）随机聊天：男生秒离开、只配女生（客户端筛，不拉黑）、对方离开自动点长条离开、招呼一次不重复、面板可拖动可调间隔；不做全页 500ms 扫描，避免拖卡
@@ -73,14 +74,14 @@
   function renderStat() {
     if (statEl) statEl.textContent = '匹配 ' + st.matched + ' / 女生 ' + st.female + ' / 换人 ' + st.leaved;
   }
-  function log(msg, red) {
+  function log(msg, tone) {
     const t = new Date().toTimeString().slice(0, 8);
     const line = t + ' ' + msg;
-    logs.push({ t: line, r: !!red });
+    logs.push({ t: line, c: tone === true ? '#ff5c5c' : (tone || '') });
     if (logs.length > 40) logs.shift();
     if (logEl) {
-      logEl.innerHTML = logs.slice().reverse().map(x => x.r
-        ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
+      logEl.innerHTML = logs.slice().reverse().map(x => x.c
+        ? '<span style="color:' + x.c + '">' + esc4(x.t) + '</span>'
         : esc4(x.t)).join('\n');
       logEl.scrollTop = 0;   // 最新一行永远贴顶
     }

@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         巧巧 / 迷迷 · 一对一托管助手
 // @namespace    https://qiaoqiao.chat/
-// @version      1.3.4
+// @version      1.3.5
 // @changelog    1.3.1 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.3.2 更新地址切换到 gh-proxy.org
 // @changelog    1.3.3 接入 APP 桥 GM4W + 女生匹配红色日志（统计原已有：匹配/女生）
 // @changelog    1.3.4 面板：日志移到选项上方、复选框置底；日志最新在最上（40 行可滚）
+// @changelog    1.3.5 TA 对方消息橙色
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%B7%A7%E5%B7%A7%E8%BF%B7%E8%BF%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%B7%A7%E5%B7%A7%E8%BF%B7%E8%BF%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  巧巧/迷迷 一对一自动匹配 + 自动接话（NIM SDK 层）；默认不筛性别、不带服务端筛选参数，配到人直接聊；换人间隔可自设；拦截站点反调试跳转；资料栏/跳过机器人/面板可拖动
@@ -422,7 +423,7 @@
       updateStat();
       setStatus('聊天中', 'ok');
       const isGirl = (numGender(ct) !== 1);
-      log('配对成功：' + userId(ct) + '（数字性别 ' + (ct.gender != null ? ct.gender : '?') + '）', isGirl);
+      log('配对成功：' + userId(ct) + '（数字性别 ' + (ct.gender != null ? ct.gender : '?') + '）', isGirl ? '#ff5c5c' : '');
       if (isGirl) g4.evt('match', userId(ct));   // 只推配到女生（id=对方 imId）
       afterMatched(ct);
       return;
@@ -581,7 +582,7 @@
     const mid = (msg && (msg.clientMsgId || msg.id || msg.uuid || msg.messageId)) ||
       ('m|' + (st.matches || 0) + '|' + st.peerMsgs + '|' + shown.slice(0, 20));
     g4.evt('msg', mid);
-    log('TA：' + (shown || '[非文本]'));
+    log('TA：' + (shown || '[非文本]'), '#ffa64d');
     st.peerMsgs++;
     st.greetSent = true;
     if (!cfg.on) return;
@@ -836,14 +837,14 @@
   let panel, statusEl, logEl, btnToggle, btnMatch, btnStop, statEl;
   const logs = [];
 
-  function log(msg, red) {
+  function log(msg, tone) {
     const t = new Date().toTimeString().slice(0, 8);
     const line = t + ' ' + msg;
-    logs.push({ t: line, r: !!red });
+    logs.push({ t: line, c: tone === true ? '#ff5c5c' : (tone || '') });
     if (logs.length > 40) logs.shift();
     if (logEl) {
-      logEl.innerHTML = logs.slice().reverse().map(x => x.r
-        ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
+      logEl.innerHTML = logs.slice().reverse().map(x => x.c
+        ? '<span style="color:' + x.c + '">' + esc4(x.t) + '</span>'
         : esc4(x.t)).join('\n');
       logEl.scrollTop = 0;   // 最新一行永远贴顶
     }

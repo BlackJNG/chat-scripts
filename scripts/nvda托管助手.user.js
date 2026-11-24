@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         NVDA托管助手（狗头军师版）
 // @namespace    https://nvda.chat/
-// @version      1.6
+// @version      1.7
 // @changelog    1.3 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.4 更新地址切换到 gh-proxy.org
 // @changelog    1.5 移除内置智谱 Key（公开仓库泄露），改为本机填写
 // @changelog    1.6 接入 APP 桥 GM4W + 女生匹配红色日志 + 匹配统计
+// @changelog    1.7 去掉机器人过滤（智能体/风险号/擦边广告）；狗头可拖动；对方消息橙色
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/nvda%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/nvda%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  nvda.chat 匿名聊天：以男生身份纯 socket 后台随机匹配，配到女号自动打招呼（自定义/可两句）；男号/机器人自动跳过并立刻换人；聊天中继续后台匹配；侧栏标注男女；自动回复走模型人设
@@ -37,7 +38,6 @@
     autoMatch: true,
     autoReply: true,
     femaleOnly: true,      // 只接 gender===1
-    botFilter: true,       // 擦边/广告/智能体/复用人设 过滤
     keepMatching: true,    // 聊天中也继续后台匹配
     maxChats: 3,           // 同时保留几个会话
     myGender: '0',         // 我自己的性别：0=男
@@ -47,7 +47,6 @@
     matchGap: 2,           // 跳过到下一次匹配的间隔
     replyDelay: 4,
     giveUp: 150,
-    skipRepeat: true,
     greet: '哈喽',          // 打招呼：最多两句，用 | 隔开
     greetGap: 2,           // 第二句隔几秒发
   };
@@ -61,9 +60,6 @@
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   // ---------- 词表 ----------
-  // 实测本站机器人开场：奶子多大 / 你还是处女吗 / 水多吗 / 叫爸爸 / 可以玩我吗 / 不正经的聊不
-  const SEX = /(奶子|处女|水多|调教|叫爸爸|玩我|不正经|约炮|约p|开房|裸聊|裸|炮友|做爱|口交|包夜|一夜情|撸|骚|胸|湿了|下面|舔|鸡巴|屄)/i;
-  const AD = /(加微信|加v|微信|扣扣|qq|telegram|飞机|纸飞机|日赚|刷单|兼职|博彩|赌|色播|福利|裸照|视频一对一)/i;
   const LEAVE = /(不想聊|别联系|不要联系|别烦我|不欢迎|滚|再见)/;
   const MINOR = /(未成年|17岁|16岁|15岁|初中|初三|高一|高二|还没成年|没满18)/;
   const BANOUT = ['微信', 'QQ', 'qq', 'vx', '支付宝', '转账', '红包', '手机号', '加我', '抖音', '地址'];
@@ -143,15 +139,15 @@
   // ---------- 日志 / 统计 ----------
   const logEl = () => document.getElementById('nv-log');
   const logLines = [];
-  function log(msg, red) {
+  function log(msg, tone) {
     console.log('[NVDA助手]', msg);
     const line = `[${new Date().toTimeString().slice(0, 8)}] ${msg}`;
-    logLines.unshift({ t: line, r: !!red });
+    logLines.unshift({ t: line, c: tone === true ? '#ff5c5c' : (tone || '') });
     if (logLines.length > 40) logLines.length = 40;
     const el = logEl();
     if (el) {
-      el.innerHTML = logLines.map(x => x.r
-        ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
+      el.innerHTML = logLines.map(x => x.c
+        ? '<span style="color:' + x.c + '">' + esc4(x.t) + '</span>'
         : esc4(x.t)).join('\n');
     }
     g4.log(line);
@@ -431,7 +427,7 @@ async function onMatched(d) {
       gender: Number(d.gender), city: d.lastCity || '', at: Date.now(),
       greeted: false, hist: [], lastRepliedId: '', nextAt: 0, lastSeen: '',
     };
-    log('配到 ' + peer.nickname + '（' + (peer.gender === 1 ? '女' : '男') + '/' + (peer.age || '?') + '）', peer.gender === 1);
+    log('配到 ' + peer.nickname + '（' + (peer.gender === 1 ? '女' : '男') + '/' + (peer.age || '?') + '）', peer.gender === 1 ? '#ff5c5c' : '');
 
     const skip = (reason, stat) => {
       bump(stat || 'skipBot');
@@ -443,14 +439,6 @@ async function onMatched(d) {
 
     if (S.femaleOnly && peer.gender !== 1) return skip('男号', 'skipMale');
     if (S.minAge && peer.age && peer.age < S.minAge) return skip('年龄 ' + peer.age);
-
-    const det = await detail(peer.matchId);
-    if (S.botFilter && det && det.agent === true) return skip('官方智能体');
-    if (S.botFilter && det && det.dangerousUser === true) return skip('风险账号');
-    if (S.botFilter && S.skipRepeat) {
-      const c = peerMark(peer.nickname + '|' + peer.age);
-      if (c > 2) return skip('同人设第 ' + c + ' 次出现');
-    }
 
     CHATS[peer.matchId] = peer;
     bump('chats');
@@ -473,14 +461,8 @@ async function onMatched(d) {
     c.hist.push({ s: 0, t: text, id: d.messageId });
     if (d.messageId) c.lastSeen = d.messageId;
     g4.evt('msg', d.messageId || ('m|' + d.matchId + '|' + text.slice(0, 20)));
-    log('收 ' + c.nickname + '：' + (text.length > 14 ? text.slice(0, 14) + '…' : text));
+    log('收 ' + c.nickname + '：' + (text.length > 14 ? text.slice(0, 14) + '…' : text), '#ffa64d');
 
-    if (S.botFilter && (SEX.test(text) || AD.test(text))) {
-      bump('skipBot');
-      log(c.nickname + ' 发擦边/广告（' + text.slice(0, 12) + '）→ 直接走人');
-      closeChat(d.matchId, '机器人/擦边');
-      return;
-    }
     if (MINOR.test(text)) {
       log(c.nickname + ' 提到未成年/学生 → 收线');
       closeChat(d.matchId, '未成年');
@@ -632,6 +614,48 @@ async function onMatched(d) {
     document.head.appendChild(s);
   }
 
+  // ---------- 狗头悬浮球：可拖动（位置记忆） ----------
+  function initFabDrag(fab, posKey) {
+    fab.style.touchAction = 'none';
+    const place = (l, t) => {
+      const w = fab.offsetWidth || 46, h = fab.offsetHeight || 46;
+      l = Math.min(Math.max(2, l), Math.max(2, window.innerWidth - w - 2));
+      t = Math.min(Math.max(2, t), Math.max(2, window.innerHeight - h - 2));
+      fab.style.left = l + 'px'; fab.style.top = t + 'px';
+      fab.style.right = 'auto'; fab.style.bottom = 'auto';
+      return { l: Math.round(l), t: Math.round(t) };
+    };
+    try {
+      const saved = JSON.parse(localStorage.getItem(posKey) || 'null');
+      if (saved && typeof saved.l === 'number' && typeof saved.t === 'number') place(saved.l, saved.t);
+    } catch (e) {}
+    let drag = null, last = null;
+    fab.addEventListener('pointerdown', e => {
+      const r = fab.getBoundingClientRect();
+      drag = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, moved: false };
+      last = { l: r.left, t: r.top };
+      try { fab.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    fab.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!drag.moved && (Math.abs(dx) + Math.abs(dy) > 6)) drag.moved = true;
+      if (!drag.moved) return;
+      last = place(drag.l + dx, drag.t + dy);
+      e.preventDefault();
+    });
+    const end = () => {
+      if (!drag) return;
+      if (drag.moved) {
+        fab.dataset.dragged = '1';   // 拖完不触发 onclick
+        try { localStorage.setItem(posKey, JSON.stringify(last || { l: 0, t: 0 })); } catch (_) {}
+      }
+      drag = null;
+    };
+    fab.addEventListener('pointerup', end);
+    fab.addEventListener('pointercancel', end);
+  }
+
   function buildPanel() {
     css();
     const fab = document.createElement('button');
@@ -657,8 +681,6 @@ async function onMatched(d) {
         <label class="nv-tg"><input type="checkbox" id="nv-r"><i></i></label></div>
       <div class="nv-row"><div><b>只接女生</b><span>男号直接走，不聊</span></div>
         <label class="nv-tg"><input type="checkbox" id="nv-f"><i></i></label></div>
-      <div class="nv-row"><div><b>过滤机器人</b><span>智能体 / 擦边开场 / 复用人设</span></div>
-        <label class="nv-tg"><input type="checkbox" id="nv-b"><i></i></label></div>
       <div class="nv-setrow"><button id="nv-setbtn">设置（间隔 · 并行数 · 年龄 · 模型 · Key）</button></div>
       <div id="nv-set" style="display:none">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 2px">
@@ -687,7 +709,11 @@ async function onMatched(d) {
     `;
     document.body.appendChild(fab);
     document.body.appendChild(panel);
-    fab.onclick = () => panel.classList.toggle('show');
+    initFabDrag(fab, 'nv_fab_pos');
+    fab.onclick = () => {
+      if (fab.dataset.dragged) { delete fab.dataset.dragged; return; }
+      panel.classList.toggle('show');
+    };
     panel.querySelector('#nv-x').onclick = () => panel.classList.remove('show');
     panel.querySelector('#nv-setbtn').onclick = () => {
       const d = panel.querySelector('#nv-set');
@@ -703,7 +729,7 @@ async function onMatched(d) {
       };
     };
     bind('#nv-m', 'autoMatch'); bind('#nv-k2', 'keepMatching'); bind('#nv-r', 'autoReply');
-    bind('#nv-f', 'femaleOnly'); bind('#nv-b', 'botFilter');
+    bind('#nv-f', 'femaleOnly');
     [['#nv-rd', 'replyDelay', 2], ['#nv-mw', 'matchWait', 5], ['#nv-mg', 'matchGap', 1],
      ['#nv-mx', 'maxChats', 1], ['#nv-ya', 'myAge', 18], ['#nv-ma', 'minAge', 0], ['#nv-gg', 'greetGap', 1]]
       .forEach(([sel, key, min]) => {
@@ -753,7 +779,7 @@ async function onMatched(d) {
         (chatList().length ? '在聊 ' + chatList().length + '：' + names : '空闲');
     }
     const s1 = document.getElementById('nv-stat');
-    if (s1) s1.textContent = `今天：匹配 ${st.matched || 0} · 女生 ${st.female || 0} · 跳过男号 ${st.skipMale || 0} · 跳过机器人 ${st.skipBot || 0} · 开聊 ${st.chats || 0} · 回复 ${st.replies || 0}`;
+    if (s1) s1.textContent = `今天：匹配 ${st.matched || 0} · 女生 ${st.female || 0} · 跳过男号 ${st.skipMale || 0} · 开聊 ${st.chats || 0} · 回复 ${st.replies || 0}`;
     const n = document.getElementById('nv-next');
     if (n) {
       const now = Date.now();

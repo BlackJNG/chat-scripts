@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         星缘托管助手（狗头军师版）
 // @namespace    https://www.starfate.vip/
-// @version      1.13
+// @version      1.14
 // @changelog    1.9 去掉男号黑名单：男生见面即换人，不再累积名单
 // @changelog    1.10 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.11 更新地址切换到 gh-proxy.org
 // @changelog    1.12 移除内置智谱 Key（公开仓库泄露），改为本机填写
 // @changelog    1.13 接入 APP 桥 GM4W（日志/事件推送）+ 女生匹配红色日志 + 匹配统计
+// @changelog    1.14 狗头悬浮球可拖动（位置记忆）
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E6%98%9F%E7%BC%98%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E6%98%9F%E7%BC%98%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  自动回复/自动捞在线/自动随机匹配，只聊女生，智谱生成，狗头军师话术规则
@@ -67,14 +68,14 @@
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const logEl = () => document.getElementById('xy-log');
   const logLines = [];
-  function log(msg, red) {
+  function log(msg, tone) {
     const line = `[${new Date().toTimeString().slice(0, 8)}] ${msg}`;
-    logLines.unshift({ t: line, r: !!red });
+    logLines.unshift({ t: line, c: tone === true ? '#ff5c5c' : (tone || '') });
     if (logLines.length > 40) logLines.length = 40;
     const el = logEl();
     if (el) {
-      el.innerHTML = logLines.map(x => x.r
-        ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
+      el.innerHTML = logLines.map(x => x.c
+        ? '<span style="color:' + x.c + '">' + esc4(x.t) + '</span>'
         : esc4(x.t)).join('\n');
     }
     console.log('[星缘助手]', msg);
@@ -463,6 +464,48 @@
     document.head.appendChild(s);
   }
 
+  // ---------- 狗头悬浮球：可拖动（位置记忆） ----------
+  function initFabDrag(fab, posKey) {
+    fab.style.touchAction = 'none';
+    const place = (l, t) => {
+      const w = fab.offsetWidth || 46, h = fab.offsetHeight || 46;
+      l = Math.min(Math.max(2, l), Math.max(2, window.innerWidth - w - 2));
+      t = Math.min(Math.max(2, t), Math.max(2, window.innerHeight - h - 2));
+      fab.style.left = l + 'px'; fab.style.top = t + 'px';
+      fab.style.right = 'auto'; fab.style.bottom = 'auto';
+      return { l: Math.round(l), t: Math.round(t) };
+    };
+    try {
+      const saved = JSON.parse(localStorage.getItem(posKey) || 'null');
+      if (saved && typeof saved.l === 'number' && typeof saved.t === 'number') place(saved.l, saved.t);
+    } catch (e) {}
+    let drag = null, last = null;
+    fab.addEventListener('pointerdown', e => {
+      const r = fab.getBoundingClientRect();
+      drag = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, moved: false };
+      last = { l: r.left, t: r.top };
+      try { fab.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    fab.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!drag.moved && (Math.abs(dx) + Math.abs(dy) > 6)) drag.moved = true;
+      if (!drag.moved) return;
+      last = place(drag.l + dx, drag.t + dy);
+      e.preventDefault();
+    });
+    const end = () => {
+      if (!drag) return;
+      if (drag.moved) {
+        fab.dataset.dragged = '1';   // 拖完不触发 onclick
+        try { localStorage.setItem(posKey, JSON.stringify(last || { l: 0, t: 0 })); } catch (_) {}
+      }
+      drag = null;
+    };
+    fab.addEventListener('pointerup', end);
+    fab.addEventListener('pointercancel', end);
+  }
+
   function buildPanel() {
     css();
     const fab = document.createElement('button');
@@ -498,8 +541,12 @@
     panel.dataset.owner = UI.owner; fab.dataset.owner = UI.owner;
     document.body.appendChild(fab);
     document.body.appendChild(panel);
+    initFabDrag(fab, 'xy_fab_pos');
     renderAll();
-    fab.onclick = () => panel.classList.toggle('show');
+    fab.onclick = () => {
+      if (fab.dataset.dragged) { delete fab.dataset.dragged; return; }
+      panel.classList.toggle('show');
+    };
     panel.querySelector('#xy-x').onclick = () => panel.classList.remove('show');
     panel.querySelector('#xy-setbtn').onclick = () => {
       const d = panel.querySelector('#xy-set');

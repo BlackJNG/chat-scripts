@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         缘起托管助手（狗头军师版）
 // @namespace    https://www.nmliao.cc/
-// @version      1.13
+// @version      1.14
 // @changelog    1.9 去掉男号黑名单：男生见面即换人，不再累积名单
 // @changelog    1.10 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.11 更新地址切换到 gh-proxy.org
 // @changelog    1.12 移除内置智谱 Key（公开仓库泄露），改为本机填写
 // @changelog    1.13 接入 APP 桥 GM4W + 女生匹配红色日志 + 匹配统计
+// @changelog    1.14 狗头可拖动(位置记忆)；对方消息橙色；隐藏消息页右下角回底箭头(可关)
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E7%BC%98%E8%B5%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E7%BC%98%E8%B5%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  缘起聊天(nmliao.cc)：纯 socket 自动匹配，配到即自动建会话发「哈喽」；自动回复与捞在线均可在面板设间隔
@@ -47,6 +48,7 @@
     matchGap: 10,    // 聊完一个到再发起下一个的间隔（秒）
 
     maxReplyPerRound: 3,
+    hideBottomBtn: true,   // 隐藏消息页右下角“回到底部”箭头（会挡住发送区）
   };
   const LS = { cfg: 'nm_us_cfg', key: 'nm_us_key', sent: 'nm_us_sent', stats: 'nm_us_stats' };
   // 不再维护"男号黑名单"：男号见面即换人，名单只会越滚越大拖慢每轮遍历
@@ -165,7 +167,7 @@
       const mid = d.msg_id || d.message_id || d.id ||
         ('m|' + d.uid + '|' + (d.send_time || d.created_at || d.timestamp || '') + '|' + String(d.msg_content || '').slice(0, 20));
       g4.evt('msg', mid);
-      log('收到消息：' + String(o.data.msg_content || '').slice(0, 16) + ' …');
+      log('收到消息：' + String(o.data.msg_content || '').slice(0, 16) + ' …', '#ffa64d');
       nextRun.reply = Date.now() + 1200;
     }
     if (o.func === 'update_msgs_status' && o.data && o.data.status === 'isSend') return;
@@ -174,14 +176,14 @@
   // ---------- 日志 ----------
   const logEl = () => document.getElementById('nm-log');
   const logLines = [];
-  function log(msg, red) {
+  function log(msg, tone) {
     const line = `[${new Date().toTimeString().slice(0, 8)}] ${msg}`;
-    logLines.unshift({ t: line, r: !!red });
+    logLines.unshift({ t: line, c: tone === true ? '#ff5c5c' : (tone || '') });
     if (logLines.length > 40) logLines.length = 40;
     const el = logEl();
     if (el) {
-      el.innerHTML = logLines.map(x => x.r
-        ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
+      el.innerHTML = logLines.map(x => x.c
+        ? '<span style="color:' + x.c + '">' + esc4(x.t) + '</span>'
         : esc4(x.t)).join('\n');
     }
     console.log('[缘起助手]', msg);
@@ -471,7 +473,7 @@
     if (u.match_id && LAST_MATCH_ID === u.match_id) return;
     LAST_MATCH_ID = u.match_id || '';
     hideMatchPopups();   // 只收这一次的弹层，不影响服务端
-    log('配到 ' + (u.nickname || '?') + '（' + (u.gender === 'female' ? '女' : '男') + '/' + (u.age || '?') + '）', u.gender === 'female');
+    log('配到 ' + (u.nickname || '?') + '（' + (u.gender === 'female' ? '女' : '男') + '/' + (u.age || '?') + '）', u.gender === 'female' ? '#ff5c5c' : '');
     if (!u.match_id) { log('缺 match_id，跳过'); return; }
     if (S.femaleOnly && u.gender !== 'female') {
       log('跳过 ' + (u.nickname || '?') + '（男号，不拉黑）');
@@ -580,6 +582,48 @@
     document.head.appendChild(s);
   }
 
+  // ---------- 狗头悬浮球：可拖动（位置记忆） ----------
+  function initFabDrag(fab, posKey) {
+    fab.style.touchAction = 'none';
+    const place = (l, t) => {
+      const w = fab.offsetWidth || 46, h = fab.offsetHeight || 46;
+      l = Math.min(Math.max(2, l), Math.max(2, window.innerWidth - w - 2));
+      t = Math.min(Math.max(2, t), Math.max(2, window.innerHeight - h - 2));
+      fab.style.left = l + 'px'; fab.style.top = t + 'px';
+      fab.style.right = 'auto'; fab.style.bottom = 'auto';
+      return { l: Math.round(l), t: Math.round(t) };
+    };
+    try {
+      const saved = JSON.parse(localStorage.getItem(posKey) || 'null');
+      if (saved && typeof saved.l === 'number' && typeof saved.t === 'number') place(saved.l, saved.t);
+    } catch (e) {}
+    let drag = null, last = null;
+    fab.addEventListener('pointerdown', e => {
+      const r = fab.getBoundingClientRect();
+      drag = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, moved: false };
+      last = { l: r.left, t: r.top };
+      try { fab.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    fab.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!drag.moved && (Math.abs(dx) + Math.abs(dy) > 6)) drag.moved = true;
+      if (!drag.moved) return;
+      last = place(drag.l + dx, drag.t + dy);
+      e.preventDefault();
+    });
+    const end = () => {
+      if (!drag) return;
+      if (drag.moved) {
+        fab.dataset.dragged = '1';   // 拖完不触发 onclick
+        try { localStorage.setItem(posKey, JSON.stringify(last || { l: 0, t: 0 })); } catch (_) {}
+      }
+      drag = null;
+    };
+    fab.addEventListener('pointerup', end);
+    fab.addEventListener('pointercancel', end);
+  }
+
   function buildPanel() {
     css();
     const fab = document.createElement('button');
@@ -596,6 +640,8 @@
         <label class="nm-tg"><input type="checkbox" id="nm-m"><i></i></label></div>
       <div class="nm-row"><div><b>只看女生</b><span>男号自动跳过并记入名单</span></div>
         <label class="nm-tg"><input type="checkbox" id="nm-f"><i></i></label></div>
+      <div class="nm-row"><div><b>隐藏下滑箭头</b><span>消息页右下角“回到底部”按钮，挡发送区</span></div>
+        <label class="nm-tg"><input type="checkbox" id="nm-hb"><i></i></label></div>
       <div class="nm-setrow"><button id="nm-setbtn">设置（间隔 · 模型 · Key）</button></div>
       <div id="nm-set" style="display:none">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 2px">
@@ -614,7 +660,11 @@
     `;
     document.body.appendChild(fab);
     document.body.appendChild(panel);
-    fab.onclick = () => panel.classList.toggle('show');
+    initFabDrag(fab, 'nm_fab_pos');
+    fab.onclick = () => {
+      if (fab.dataset.dragged) { delete fab.dataset.dragged; return; }
+      panel.classList.toggle('show');
+    };
     panel.querySelector('#nm-x').onclick = () => panel.classList.remove('show');
     panel.querySelector('#nm-setbtn').onclick = () => {
       const d = panel.querySelector('#nm-set');
@@ -634,7 +684,8 @@
         render();
       };
     };
-    bind('#nm-r', 'autoReply'); bind('#nm-p', 'autoPick'); bind('#nm-m', 'autoMatch'); bind('#nm-f', 'femaleOnly');
+    bind('#nm-r', 'autoReply'); bind('#nm-p', 'autoPick'); bind('#nm-m', 'autoMatch'); bind('#nm-f', 'femaleOnly'); bind('#nm-hb', 'hideBottomBtn');
+    applyHideArrow();
     [['#nm-rv','replyEvery','回复间隔'],['#nm-pk','pickEvery','捞人间隔'],['#nm-mw','matchWait','匹配等待'],['#nm-mg','matchGap','匹配冷却']]
       .forEach(([sel,key,name]) => {
         const el = panel.querySelector(sel);
@@ -718,6 +769,52 @@
     if (S.autoMatch) matchLoop().catch(() => {});
   }
 
+  // ---------- 隐藏消息页右下角“回到底部”箭头 ----------
+  const ARROW_CSS = [
+    '[class*="to-bottom"],[class*="toBottom"],[class*="scroll-bottom"],[class*="scrollBottom"]',
+    '[class*="back-bottom"],[class*="backBottom"],[class*="go-bottom"],[class*="goBottom"]',
+    '[class*="down-arrow"],[class*="downArrow"],[class*="bottom-arrow"],[class*="bottomArrow"]',
+    '[class*="scroll-to"],[class*="scrollTo"],[class*="toDown"],[class*="to-down"]',
+  ].join(',') + '{display:none!important}';
+
+  function applyHideArrow() {
+    let st = document.getElementById('nm-hide-arrow');
+    if (!S.hideBottomBtn) {
+      if (st) st.remove();
+      document.querySelectorAll('[data-nm-arrow]').forEach(el => {
+        el.style.display = el.dataset.nmArrowOld || '';
+        delete el.dataset.nmArrow; delete el.dataset.nmArrowOld;
+      });
+      return;
+    }
+    if (!st) {
+      st = document.createElement('style');
+      st.id = 'nm-hide-arrow';
+      st.textContent = ARROW_CSS;
+      document.documentElement.appendChild(st);
+    }
+    sweepArrow();
+  }
+
+  // 只认“固定在右下、尺寸小、类名带 arrow/down/bottom/scroll、且不在输入栏里”的元素
+  function sweepArrow() {
+    try {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      document.querySelectorAll('[class]').forEach(el => {
+        if (el.dataset.nmArrow || el.id === 'nm-panel' || el.closest('#nm-panel')) return;
+        if (!/arrow|down|bottom|scroll/i.test(String(el.className || ''))) return;
+        const r = el.getBoundingClientRect();
+        if (r.width < 12 || r.height < 12 || r.width > 64 || r.height > 64) return;
+        if (r.right < vw - 80 || r.bottom < 60 || r.bottom > vh - 56) return;
+        if (getComputedStyle(el).position === 'static') return;
+        if (el.closest('[class*="input"],[class*="send"],[class*="editor"],[class*="footer"],[class*="textarea"]')) return;
+        el.dataset.nmArrowOld = el.style.display || '';
+        el.dataset.nmArrow = '1';
+        el.style.setProperty('display', 'none', 'important');
+      });
+    } catch (e) {}
+  }
+
   async function boot() {
     if (document.getElementById('nm-panel')) return;
     buildPanel();
@@ -730,11 +827,13 @@
     nextRun.match = t0 + 3000;
     if (!info) {
       log('未登录，脚本待命（登录后自动接管）');
+      applyHideArrow(); setInterval(applyHideArrow, 3000);
       setInterval(async () => { if (await loadMe()) { log('检测到登录：' + ME.nickname); await ensureSock(); } render(); }, 15000);
       setInterval(render, 2000);
       return;
     }
     log('助手已启动（' + ME.nickname + ' / ' + ME.gender + '）');
+    applyHideArrow(); setInterval(applyHideArrow, 3000);
     await ensureSock();
     setTimeout(() => testModel(true), 1500);
     setInterval(tick, 1000);
