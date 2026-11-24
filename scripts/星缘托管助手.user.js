@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         星缘托管助手（狗头军师版）
 // @namespace    https://www.starfate.vip/
-// @version      1.12
+// @version      1.13
 // @changelog    1.9 去掉男号黑名单：男生见面即换人，不再累积名单
 // @changelog    1.10 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.11 更新地址切换到 gh-proxy.org
 // @changelog    1.12 移除内置智谱 Key（公开仓库泄露），改为本机填写
+// @changelog    1.13 接入 APP 桥 GM4W（日志/事件推送）+ 女生匹配红色日志 + 匹配统计
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E6%98%9F%E7%BC%98%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E6%98%9F%E7%BC%98%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  自动回复/自动捞在线/自动随机匹配，只聊女生，智谱生成，狗头军师话术规则
@@ -17,6 +18,16 @@
 
 (function () {
   'use strict';
+
+  // ---------- APP 桥（window.GM4W）：桥不存在时静默跳过 ----------
+  const g4 = {
+    // 页面桥在真实 window 上；油猴沙箱里要优先取 unsafeWindow
+    w() { try { return (typeof unsafeWindow !== 'undefined' && unsafeWindow) || window; } catch (e) { return window; } },
+    log(t) { try { const W = g4.w(); if (W.GM4W && W.GM4W.pushLog) W.GM4W.pushLog(String(t)); } catch (e) {} },
+    evt(type, id) { try { const W = g4.w(); if (W.GM4W && W.GM4W.pushEvent && id != null) W.GM4W.pushEvent(type, String(id)); } catch (e) {} },
+  };
+  const esc4 = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
 
   // ---------- 配置 ----------
   const DEFAULT_KEY = '';  // 安全：不再内置任何 Key，只从本机 localStorage 读取
@@ -55,15 +66,19 @@
   // ---------- 工具 ----------
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const logEl = () => document.getElementById('xy-log');
-  function log(msg) {
-    const el = logEl();
+  const logLines = [];
+  function log(msg, red) {
     const line = `[${new Date().toTimeString().slice(0, 8)}] ${msg}`;
+    logLines.unshift({ t: line, r: !!red });
+    if (logLines.length > 40) logLines.length = 40;
+    const el = logEl();
     if (el) {
-      el.textContent = line + '\n' + el.textContent;
-      const lines = el.textContent.split('\n');
-      if (lines.length > 40) el.textContent = lines.slice(0, 40).join('\n');
+      el.innerHTML = logLines.map(x => x.r
+        ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
+        : esc4(x.t)).join('\n');
     }
     console.log('[星缘助手]', msg);
+    g4.log(line);   // 额外推一份给 APP
   }
 
   async function api(path, opt = {}) {
@@ -299,6 +314,7 @@
       if (last.isSelf) continue;                     // 我方已最后发言，不追加
       const key = c.id + '|' + (last.createdAt || '') + '|' + (last.text || '');
       if (sent[key]) continue;                        // 同一条已处理过
+      g4.evt('msg', key);                             // 新消息事件（id 与去重键一致，稳定唯一）
       const reply = await replyFor(c.peerNickname, msgs);
       if (!reply) { log('跳过 ' + c.peerNickname + '（模型空或触发禁词）'); sent[key] = 1; saveLS(LS.sent, sent); continue; }
       const prevSelf = [...msgs].reverse().find(m => m.isSelf);
@@ -376,7 +392,10 @@
           const msg = await greeting(u);
           try {
             await enqueueSend(() => hubSend(cid, msg));
-            log('配到 ' + u.nickname + '(' + u.gender + '/' + u.age + ')：' + msg);
+            const isGirl = (u.gender === 'female');
+            log('配到 ' + u.nickname + '(' + u.gender + '/' + u.age + ')：' + msg, isGirl);
+            stMatched(u);
+            if (isGirl) g4.evt('match', u.id);   // 只推配到女生
             pushStat(u.nickname, msg);
           } catch (e) { log('打招呼失败：' + e.message); }
         }
@@ -385,6 +404,18 @@
       }
       if (!ok) { log('这一轮没配到人（队列超时），30 秒后重试'); await sleep(30000); }
     }
+  }
+
+  // 匹配统计：总匹配次数 + 配到女生数
+  function stMatched(u) {
+    try {
+      const st = loadLS(LS.stats, {});
+      const today = new Date().toDateString();
+      if (st.mDate !== today) { st.mDate = today; st.matched = 0; st.female = 0; }
+      st.matched = (st.matched || 0) + 1;
+      if (u && u.gender === 'female') st.female = (st.female || 0) + 1;
+      saveLS(LS.stats, st);
+    } catch (e) {}
   }
 
   // ---------- 面板 ----------
@@ -549,7 +580,7 @@
       h.textContent = '✅ 在线｜未读 ' + (d.unread ?? '—') + '｜会话 ' + (d.convs ?? '—') + '｜' + modelText();
     }
     const d = loadLS(LS.stats, {});
-    st.textContent = '今天：捞取 ' + (d.picks || 0) + ' 次 · 回复 ' + (d.replied || 0) + ' 条 · 剩余额度 ' + (d.rem ?? '—');
+    st.textContent = '今天：匹配 ' + (d.matched || 0) + ' · 女生 ' + (d.female || 0) + ' · 捞取 ' + (d.picks || 0) + ' 次 · 回复 ' + (d.replied || 0) + ' 条 · 剩余额度 ' + (d.rem ?? '—');
     const now = Date.now();
     nx.textContent = '下次：' + [
       S.autoReply ? '回复 ' + (busy.reply ? '执行中' : fmt(nextRun.reply - now)) : '回复 关',

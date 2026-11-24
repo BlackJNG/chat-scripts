@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         NVDA托管助手（狗头军师版）
 // @namespace    https://nvda.chat/
-// @version      1.5
+// @version      1.6
 // @changelog    1.3 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.4 更新地址切换到 gh-proxy.org
 // @changelog    1.5 移除内置智谱 Key（公开仓库泄露），改为本机填写
+// @changelog    1.6 接入 APP 桥 GM4W + 女生匹配红色日志 + 匹配统计
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/nvda%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/nvda%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  nvda.chat 匿名聊天：以男生身份纯 socket 后台随机匹配，配到女号自动打招呼（自定义/可两句）；男号/机器人自动跳过并立刻换人；聊天中继续后台匹配；侧栏标注男女；自动回复走模型人设
@@ -17,6 +18,16 @@
 
 (function () {
   'use strict';
+
+  // ---------- APP 桥（window.GM4W）：桥不存在时静默跳过 ----------
+  const g4 = {
+    // 页面桥在真实 window 上；油猴沙箱里要优先取 unsafeWindow
+    w() { try { return (typeof unsafeWindow !== 'undefined' && unsafeWindow) || window; } catch (e) { return window; } },
+    log(t) { try { const W = g4.w(); if (W.GM4W && W.GM4W.pushLog) W.GM4W.pushLog(String(t)); } catch (e) {} },
+    evt(type, id) { try { const W = g4.w(); if (W.GM4W && W.GM4W.pushEvent && id != null) W.GM4W.pushEvent(type, String(id)); } catch (e) {} },
+  };
+  const esc4 = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
 
   const DEFAULT_KEY = '';  // 安全：不再内置任何 Key，只从本机 localStorage 读取
   const LLM_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
@@ -131,20 +142,24 @@
 
   // ---------- 日志 / 统计 ----------
   const logEl = () => document.getElementById('nv-log');
-  function log(msg) {
+  const logLines = [];
+  function log(msg, red) {
     console.log('[NVDA助手]', msg);
-    const el = logEl();
     const line = `[${new Date().toTimeString().slice(0, 8)}] ${msg}`;
+    logLines.unshift({ t: line, r: !!red });
+    if (logLines.length > 40) logLines.length = 40;
+    const el = logEl();
     if (el) {
-      el.textContent = line + '\n' + el.textContent;
-      const lines = el.textContent.split('\n');
-      if (lines.length > 40) el.textContent = lines.slice(0, 40).join('\n');
+      el.innerHTML = logLines.map(x => x.r
+        ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
+        : esc4(x.t)).join('\n');
     }
+    g4.log(line);
   }
   function bump(key, n) {
     const st = loadLS(LS.stats, {});
     const today = new Date().toDateString();
-    if (st.date !== today) { st.date = today; st.matched = 0; st.skipMale = 0; st.skipBot = 0; st.replies = 0; st.chats = 0; }
+    if (st.date !== today) { st.date = today; st.matched = 0; st.skipMale = 0; st.skipBot = 0; st.replies = 0; st.chats = 0; st.female = 0; }
     st[key] = (st[key] || 0) + (n == null ? 1 : n);
     saveLS(LS.stats, st);
     render();
@@ -416,7 +431,7 @@ async function onMatched(d) {
       gender: Number(d.gender), city: d.lastCity || '', at: Date.now(),
       greeted: false, hist: [], lastRepliedId: '', nextAt: 0, lastSeen: '',
     };
-    log('配到 ' + peer.nickname + '（' + (peer.gender === 1 ? '女' : '男') + '/' + (peer.age || '?') + '）');
+    log('配到 ' + peer.nickname + '（' + (peer.gender === 1 ? '女' : '男') + '/' + (peer.age || '?') + '）', peer.gender === 1);
 
     const skip = (reason, stat) => {
       bump(stat || 'skipBot');
@@ -439,6 +454,7 @@ async function onMatched(d) {
 
     CHATS[peer.matchId] = peer;
     bump('chats');
+    if (peer.gender === 1) { bump('female'); g4.evt('match', peer.matchId); }   // 只推配到女生（id=matchId，稳定）
     greet(peer);
     if (S.keepMatching && chatList().length < Math.max(1, S.maxChats)) {
       nextRun.match = Date.now() + Math.max(1, S.matchGap) * 1000;
@@ -456,6 +472,7 @@ async function onMatched(d) {
     if (last && last.s === 0 && last.t === text) return;
     c.hist.push({ s: 0, t: text, id: d.messageId });
     if (d.messageId) c.lastSeen = d.messageId;
+    g4.evt('msg', d.messageId || ('m|' + d.matchId + '|' + text.slice(0, 20)));
     log('收 ' + c.nickname + '：' + (text.length > 14 ? text.slice(0, 14) + '…' : text));
 
     if (S.botFilter && (SEX.test(text) || AD.test(text))) {
@@ -736,7 +753,7 @@ async function onMatched(d) {
         (chatList().length ? '在聊 ' + chatList().length + '：' + names : '空闲');
     }
     const s1 = document.getElementById('nv-stat');
-    if (s1) s1.textContent = `今天：匹配 ${st.matched || 0} · 跳过男号 ${st.skipMale || 0} · 跳过机器人 ${st.skipBot || 0} · 开聊 ${st.chats || 0} · 回复 ${st.replies || 0}`;
+    if (s1) s1.textContent = `今天：匹配 ${st.matched || 0} · 女生 ${st.female || 0} · 跳过男号 ${st.skipMale || 0} · 跳过机器人 ${st.skipBot || 0} · 开聊 ${st.chats || 0} · 回复 ${st.replies || 0}`;
     const n = document.getElementById('nv-next');
     if (n) {
       const now = Date.now();

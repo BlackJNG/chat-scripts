@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         缘起托管助手（狗头军师版）
 // @namespace    https://www.nmliao.cc/
-// @version      1.12
+// @version      1.13
 // @changelog    1.9 去掉男号黑名单：男生见面即换人，不再累积名单
 // @changelog    1.10 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.11 更新地址切换到 gh-proxy.org
 // @changelog    1.12 移除内置智谱 Key（公开仓库泄露），改为本机填写
+// @changelog    1.13 接入 APP 桥 GM4W + 女生匹配红色日志 + 匹配统计
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E7%BC%98%E8%B5%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E7%BC%98%E8%B5%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  缘起聊天(nmliao.cc)：纯 socket 自动匹配，配到即自动建会话发「哈喽」；自动回复与捞在线均可在面板设间隔
@@ -18,6 +19,16 @@
 
 (function () {
   'use strict';
+
+  // ---------- APP 桥（window.GM4W）：桥不存在时静默跳过 ----------
+  const g4 = {
+    // 页面桥在真实 window 上；油猴沙箱里要优先取 unsafeWindow
+    w() { try { return (typeof unsafeWindow !== 'undefined' && unsafeWindow) || window; } catch (e) { return window; } },
+    log(t) { try { const W = g4.w(); if (W.GM4W && W.GM4W.pushLog) W.GM4W.pushLog(String(t)); } catch (e) {} },
+    evt(type, id) { try { const W = g4.w(); if (W.GM4W && W.GM4W.pushEvent && id != null) W.GM4W.pushEvent(type, String(id)); } catch (e) {} },
+  };
+  const esc4 = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
 
   const DEFAULT_KEY = '';  // 安全：不再内置任何 Key，只从本机 localStorage 读取
   const LLM_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
@@ -150,6 +161,10 @@
       setTimeout(() => { try { hideMatchPopups(); } catch (_) {} }, 1500);
     }
     if (o.func === 'recv_msg' && o.data && o.data.uid && o.data.uid !== ME.id) {
+      const d = o.data;
+      const mid = d.msg_id || d.message_id || d.id ||
+        ('m|' + d.uid + '|' + (d.send_time || d.created_at || d.timestamp || '') + '|' + String(d.msg_content || '').slice(0, 20));
+      g4.evt('msg', mid);
       log('收到消息：' + String(o.data.msg_content || '').slice(0, 16) + ' …');
       nextRun.reply = Date.now() + 1200;
     }
@@ -158,15 +173,19 @@
 
   // ---------- 日志 ----------
   const logEl = () => document.getElementById('nm-log');
-  function log(msg) {
-    const el = logEl();
+  const logLines = [];
+  function log(msg, red) {
     const line = `[${new Date().toTimeString().slice(0, 8)}] ${msg}`;
+    logLines.unshift({ t: line, r: !!red });
+    if (logLines.length > 40) logLines.length = 40;
+    const el = logEl();
     if (el) {
-      el.textContent = line + '\n' + el.textContent;
-      const lines = el.textContent.split('\n');
-      if (lines.length > 40) el.textContent = lines.slice(0, 40).join('\n');
+      el.innerHTML = logLines.map(x => x.r
+        ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
+        : esc4(x.t)).join('\n');
     }
     console.log('[缘起助手]', msg);
+    g4.log(line);
   }
 
   // ---------- REST ----------
@@ -452,7 +471,7 @@
     if (u.match_id && LAST_MATCH_ID === u.match_id) return;
     LAST_MATCH_ID = u.match_id || '';
     hideMatchPopups();   // 只收这一次的弹层，不影响服务端
-    log('配到 ' + (u.nickname || '?') + '（' + (u.gender === 'female' ? '女' : '男') + '/' + (u.age || '?') + '）');
+    log('配到 ' + (u.nickname || '?') + '（' + (u.gender === 'female' ? '女' : '男') + '/' + (u.age || '?') + '）', u.gender === 'female');
     if (!u.match_id) { log('缺 match_id，跳过'); return; }
     if (S.femaleOnly && u.gender !== 'female') {
       log('跳过 ' + (u.nickname || '?') + '（男号，不拉黑）');
@@ -461,6 +480,7 @@
     }
     const r = await startChat('match', u.match_id);
     if (!r.chatid) { log('建会话失败（' + (u.nickname || '?') + '），换个再配'); M.phase = 'idle'; M.until = Date.now() + 3000; nextRun.match = M.until; return; }
+    if (u.gender === 'female') { stMatched(); g4.evt('match', u.id || u.match_id); }   // 只推配到女生
     const ok = await sendMsg(r.chatid, r.to_uid || u.id, '哈喽');
     log((ok ? '打招呼 ' : '打招呼帧未送达 ') + (u.nickname || '?') + '：哈喽');
     bump('replies');
@@ -652,6 +672,17 @@
     render();
   }
 
+  function stMatched() {
+    try {
+      const st = loadLS(LS.stats, {});
+      const today = new Date().toDateString();
+      if (st.mDate !== today) { st.mDate = today; st.matched = 0; st.female = 0; }
+      st.matched = (st.matched || 0) + 1;
+      st.female = (st.female || 0) + 1;
+      saveLS(LS.stats, st);
+    } catch (e) {}
+  }
+
   function bump(key) {
     const st = loadLS(LS.stats, {});
     const today = new Date().toDateString();
@@ -667,7 +698,7 @@
       ? `✅ 在线｜未读 ${st.unread || 0} | 会话 ${st.convs || 0} | ${m}`
       : '❌ 未登录：先在站内登录（cjh888 / cjh888）';
     const s1 = document.getElementById('nm-stat');
-    if (s1) s1.textContent = `今天：捞取 ${st.picks || 0}/${S.maxPickPerDay} 次 · 回复 ${st.replies || 0} 条 · 剩余捞取 ${pickLeft()}`;
+    if (s1) s1.textContent = `今天：匹配 ${st.matched || 0} · 女生 ${st.female || 0} · 捞取 ${st.picks || 0}/${S.maxPickPerDay} 次 · 回复 ${st.replies || 0} 条 · 剩余捞取 ${pickLeft()}`;
     const n = document.getElementById('nm-next');
     if (n) {
       const now = Date.now();

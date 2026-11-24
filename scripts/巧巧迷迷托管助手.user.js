@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         巧巧 / 迷迷 · 一对一托管助手
 // @namespace    https://qiaoqiao.chat/
-// @version      1.3.2
+// @version      1.3.3
 // @changelog    1.3.1 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.3.2 更新地址切换到 gh-proxy.org
+// @changelog    1.3.3 接入 APP 桥 GM4W + 女生匹配红色日志（统计原已有：匹配/女生）
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%B7%A7%E5%B7%A7%E8%BF%B7%E8%BF%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%B7%A7%E5%B7%A7%E8%BF%B7%E8%BF%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  巧巧/迷迷 一对一自动匹配 + 自动接话（NIM SDK 层）；默认不筛性别、不带服务端筛选参数，配到人直接聊；换人间隔可自设；拦截站点反调试跳转；资料栏/跳过机器人/面板可拖动
@@ -16,6 +17,16 @@
 
 (function () {
   'use strict';
+
+  // ---------- APP 桥（window.GM4W）：桥不存在时静默跳过 ----------
+  const g4 = {
+    // 页面桥在真实 window 上；油猴沙箱里要优先取 unsafeWindow
+    w() { try { return (typeof unsafeWindow !== 'undefined' && unsafeWindow) || window; } catch (e) { return window; } },
+    log(t) { try { const W = g4.w(); if (W.GM4W && W.GM4W.pushLog) W.GM4W.pushLog(String(t)); } catch (e) {} },
+    evt(type, id) { try { const W = g4.w(); if (W.GM4W && W.GM4W.pushEvent && id != null) W.GM4W.pushEvent(type, String(id)); } catch (e) {} },
+  };
+  const esc4 = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
 
   /* 站点用 disable-devtool（webpack 分块 js/818.<hash>.js，里面只有 2818 这一个模块）。
      它的配置是：一检测到 DevTools 就 location.href = "https://httpstatus.io/403"。
@@ -409,7 +420,9 @@
       st.matches++;
       updateStat();
       setStatus('聊天中', 'ok');
-      log('配对成功：' + userId(ct) + '（数字性别 ' + (ct.gender != null ? ct.gender : '?') + '）');
+      const isGirl = (numGender(ct) !== 1);
+      log('配对成功：' + userId(ct) + '（数字性别 ' + (ct.gender != null ? ct.gender : '?') + '）', isGirl);
+      if (isGirl) g4.evt('match', userId(ct));   // 只推配到女生（id=对方 imId）
       afterMatched(ct);
       return;
     }
@@ -564,6 +577,9 @@
 
   function onPeerText(text, msg) {
     const shown = String(text || '').slice(0, 60);
+    const mid = (msg && (msg.clientMsgId || msg.id || msg.uuid || msg.messageId)) ||
+      ('m|' + (st.matches || 0) + '|' + st.peerMsgs + '|' + shown.slice(0, 20));
+    g4.evt('msg', mid);
     log('TA：' + (shown || '[非文本]'));
     st.peerMsgs++;
     st.greetSent = true;
@@ -819,14 +835,18 @@
   let panel, statusEl, logEl, btnToggle, btnMatch, btnStop, statEl;
   const logs = [];
 
-  function log(msg) {
+  function log(msg, red) {
     const t = new Date().toTimeString().slice(0, 8);
-    logs.push(t + ' ' + msg);
+    const line = t + ' ' + msg;
+    logs.push({ t: line, r: !!red });
     if (logs.length > 40) logs.shift();
     if (logEl) {
-      logEl.textContent = logs.slice(-6).join('\n');
+      logEl.innerHTML = logs.slice(-6).map(x => x.r
+        ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
+        : esc4(x.t)).join('\n');
       logEl.scrollTop = logEl.scrollHeight;
     }
+    g4.log(line);
   }
 
   function updateStat() {

@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         叔叔不约 · 一对一托管助手
 // @namespace    https://shushubuyue.net/
-// @version      3.0.2
+// @version      3.0.3
 // @changelog    3.0.1 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    3.0.2 更新地址切换到 gh-proxy.org
+// @changelog    3.0.3 接入 APP 桥 GM4W + 女生匹配红色日志 + 女生统计；DOM 版无消息回调，不推 msg 事件
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%8F%94%E5%8F%94%E4%B8%8D%E7%BA%A6%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%8F%94%E5%8F%94%E4%B8%8D%E7%BA%A6%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  叔叔不约（shushubuyue.net/.com）随机聊天：男生秒离开、只配女生（客户端筛，不拉黑）、对方离开自动点长条离开、招呼一次不重复、面板可拖动可调间隔；不做全页 500ms 扫描，避免拖卡
@@ -18,6 +19,16 @@
 (function () {
   'use strict';
   if (window.top !== window.self) return;
+
+  // ---------- APP 桥（window.GM4W）：桥不存在时静默跳过 ----------
+  const g4 = {
+    // 页面桥在真实 window 上；油猴沙箱里要优先取 unsafeWindow
+    w() { try { return (typeof unsafeWindow !== 'undefined' && unsafeWindow) || window; } catch (e) { return window; } },
+    log(t) { try { const W = g4.w(); if (W.GM4W && W.GM4W.pushLog) W.GM4W.pushLog(String(t)); } catch (e) {} },
+    evt(type, id) { try { const W = g4.w(); if (W.GM4W && W.GM4W.pushEvent && id != null) W.GM4W.pushEvent(type, String(id)); } catch (e) {} },
+  };
+  const esc4 = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
 
   /* ============================================================
    * 0. 配置
@@ -58,15 +69,22 @@
   let panel, statusEl, logEl, peerEl, statEl;
   const logs = [];
 
-  function log(msg) {
+  function renderStat() {
+    if (statEl) statEl.textContent = '匹配 ' + st.matched + ' / 女生 ' + st.female + ' / 换人 ' + st.leaved;
+  }
+  function log(msg, red) {
     const t = new Date().toTimeString().slice(0, 8);
-    logs.push(t + ' ' + msg);
+    const line = t + ' ' + msg;
+    logs.push({ t: line, r: !!red });
     if (logs.length > 40) logs.shift();
     if (logEl) {
-      logEl.textContent = logs.slice(-6).join('\n');
+      logEl.innerHTML = logs.slice(-6).map(x => x.r
+        ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
+        : esc4(x.t)).join('\n');
       logEl.scrollTop = logEl.scrollHeight;
     }
-    if (statEl) statEl.textContent = '匹配 ' + st.matched + ' / 换人 ' + st.leaved;
+    renderStat();
+    g4.log(line);
   }
   function setStatus(txt, tone) {
     if (!statusEl) return;
@@ -274,7 +292,7 @@
   /* ============================================================
    * 3. 站点状态
    * ============================================================ */
-  const st = { matched: 0, leaved: 0, nextRun: 0, lastKey: '', greetKey: '', leaving: false, leaveAt: 0 };
+  const st = { matched: 0, female: 0, leaved: 0, nextRun: 0, lastKey: '', femaleKey: '', greetKey: '', leaving: false, leaveAt: 0 };
 
   function peerGender() {
     const box = findByText('对方信息', false);
@@ -400,6 +418,12 @@
         return;
       }
       setStatus('聊天中', 'ok');
+      if (st.femaleKey !== key) {
+        st.femaleKey = key;
+        st.female++;
+        renderStat();
+        g4.evt('match', key);   // 只推配到女生（id=昵称|标签，稳定）
+      }
       if (cfg.greet && st.greetKey !== key) {
         st.greetKey = key;
         setTimeout(() => { if (sendGreeting()) setStatus('已打招呼', 'ok'); }, rnd(600, 1200));
