@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         巧巧 / 迷迷 · 一对一托管助手
 // @namespace    https://qiaoqiao.chat/
-// @version      1.3.3
+// @version      1.3.4
 // @changelog    1.3.1 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.3.2 更新地址切换到 gh-proxy.org
 // @changelog    1.3.3 接入 APP 桥 GM4W + 女生匹配红色日志（统计原已有：匹配/女生）
+// @changelog    1.3.4 面板：日志移到选项上方、复选框置底；日志最新在最上（40 行可滚）
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%B7%A7%E5%B7%A7%E8%BF%B7%E8%BF%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%B7%A7%E5%B7%A7%E8%BF%B7%E8%BF%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  巧巧/迷迷 一对一自动匹配 + 自动接话（NIM SDK 层）；默认不筛性别、不带服务端筛选参数，配到人直接聊；换人间隔可自设；拦截站点反调试跳转；资料栏/跳过机器人/面板可拖动
@@ -841,10 +842,10 @@
     logs.push({ t: line, r: !!red });
     if (logs.length > 40) logs.shift();
     if (logEl) {
-      logEl.innerHTML = logs.slice(-6).map(x => x.r
+      logEl.innerHTML = logs.slice().reverse().map(x => x.r
         ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
         : esc4(x.t)).join('\n');
-      logEl.scrollTop = logEl.scrollHeight;
+      logEl.scrollTop = 0;   // 最新一行永远贴顶
     }
     g4.log(line);
   }
@@ -896,12 +897,12 @@
       '    <button class="ars-b ghost" id="ars-match">匹配</button>',
       '    <button class="ars-b ghost" id="ars-stop">断开</button>',
       '  </div>',
+      '  <div class="ars-log" id="ars-log"></div>',
       '  <label class="ars-opt"><input type="checkbox" id="ars-female"> 只匹配女生（客户端筛，不需要 VIP）</label>',
       '  <label class="ars-opt"><input type="checkbox" id="ars-greet" checked> 自动打招呼</label>',
       '  <label class="ars-opt"><input type="checkbox" id="ars-rematch" checked> 离开后自动再匹配</label>',
       '  <label class="ars-opt"><input type="checkbox" id="ars-skipbot" checked> 跳过机器人</label>',
       '  <label class="ars-opt"><input type="checkbox" id="ars-metaopt" checked> 显示城市/注册日期</label>',
-      '  <div class="ars-log" id="ars-log"></div>',
       '</div>',
     ].join('');
     document.documentElement.appendChild(host);
@@ -926,7 +927,7 @@
       '#ars-qq-panel .ars-b{flex:1;padding:6px 0;border-radius:8px;border:0;background:#3b6bff;color:#fff;font-size:12px;cursor:pointer}',
       '#ars-qq-panel .ars-b.ghost{background:rgba(255,255,255,.1);color:#dfe5f2}',
       '#ars-qq-panel .ars-opt{display:block;margin:3px 0;opacity:.85}',
-      '#ars-qq-panel .ars-log{margin-top:8px;height:92px;overflow:auto;background:rgba(0,0,0,.35);border-radius:8px;',
+      '#ars-qq-panel .ars-log{margin-top:8px;height:132px;overflow:auto;background:rgba(0,0,0,.35);border-radius:8px;',
       'padding:6px;font-size:11px;line-height:1.5;white-space:pre-wrap;color:#aab4c8}',
     ].join('');
     document.documentElement.appendChild(css);

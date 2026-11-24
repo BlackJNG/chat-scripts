@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         叔叔不约 · 一对一托管助手
 // @namespace    https://shushubuyue.net/
-// @version      3.0.3
+// @version      3.0.4
 // @changelog    3.0.1 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    3.0.2 更新地址切换到 gh-proxy.org
 // @changelog    3.0.3 接入 APP 桥 GM4W + 女生匹配红色日志 + 女生统计；DOM 版无消息回调，不推 msg 事件
+// @changelog    3.0.4 面板：日志移到选项上方、复选框置底；日志最新在最上（40 行可滚）
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%8F%94%E5%8F%94%E4%B8%8D%E7%BA%A6%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%8F%94%E5%8F%94%E4%B8%8D%E7%BA%A6%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  叔叔不约（shushubuyue.net/.com）随机聊天：男生秒离开、只配女生（客户端筛，不拉黑）、对方离开自动点长条离开、招呼一次不重复、面板可拖动可调间隔；不做全页 500ms 扫描，避免拖卡
@@ -78,10 +79,10 @@
     logs.push({ t: line, r: !!red });
     if (logs.length > 40) logs.shift();
     if (logEl) {
-      logEl.innerHTML = logs.slice(-6).map(x => x.r
+      logEl.innerHTML = logs.slice().reverse().map(x => x.r
         ? '<span style="color:#ff5c5c">' + esc4(x.t) + '</span>'
         : esc4(x.t)).join('\n');
-      logEl.scrollTop = logEl.scrollHeight;
+      logEl.scrollTop = 0;   // 最新一行永远贴顶
     }
     renderStat();
     g4.log(line);
@@ -116,16 +117,16 @@
       '<div class="sb-body">',
       '  <div class="sb-row"><span class="sb-k">状态</span><span class="sb-v" id="sb-status">启动中</span></div>',
       '  <div class="sb-row"><span class="sb-k">对方</span><span class="sb-v sb-peer" id="sb-peer">—</span></div>',
-      '  <div class="sb-row"><span class="sb-k">统计</span><span class="sb-v" id="sb-stat">匹配 0 / 换人 0</span></div>',
+      '  <div class="sb-row"><span class="sb-k">统计</span><span class="sb-v" id="sb-stat">匹配 0 / 女生 0 / 换人 0</span></div>',
       '  <div class="sb-btns"><button class="sb-b" id="sb-toggle">开始</button>',
       '    <button class="sb-b ghost" id="sb-leave">离开</button></div>',
-      '  <label class="sb-opt"><input type="checkbox" id="sb-female"> 只配女生（客户端筛）</label>',
-      '  <label class="sb-opt"><input type="checkbox" id="sb-greet"> 自动打招呼</label>',
-      '  <label class="sb-opt"><input type="checkbox" id="sb-pure"> 女生只有"清流"标签时跳过</label>',
       '  <div class="sb-row"><span class="sb-k">换人间隔</span><span class="sb-v">',
       '    <input class="sb-num" id="sb-gapmin" type="number" min="1" step="1"> – ',
       '    <input class="sb-num" id="sb-gapmax" type="number" min="1" step="1"> 秒</span></div>',
       '  <div class="sb-log" id="sb-log"></div>',
+      '  <label class="sb-opt"><input type="checkbox" id="sb-female"> 只配女生（客户端筛）</label>',
+      '  <label class="sb-opt"><input type="checkbox" id="sb-greet"> 自动打招呼</label>',
+      '  <label class="sb-opt"><input type="checkbox" id="sb-pure"> 女生只有"清流"标签时跳过</label>',
       '</div>',
     ].join('');
     document.documentElement.appendChild(host);
@@ -151,7 +152,7 @@
       '#sb-panel .sb-opt{display:block;margin:3px 0;opacity:.85}',
       '#sb-panel .sb-num{width:40px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);',
       'border-radius:6px;color:#e8ecf6;font-size:12px;padding:1px 4px;text-align:center}',
-      '#sb-panel .sb-log{margin-top:8px;height:88px;overflow:auto;background:rgba(0,0,0,.35);border-radius:8px;',
+      '#sb-panel .sb-log{margin-top:8px;height:128px;overflow:auto;background:rgba(0,0,0,.35);border-radius:8px;',
       'padding:6px;font-size:11px;line-height:1.5;white-space:pre-wrap;color:#aab4c8}',
     ].join('');
     document.documentElement.appendChild(css);
