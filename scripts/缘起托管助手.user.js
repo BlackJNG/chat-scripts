@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         缘起托管助手（狗头军师版）
 // @namespace    https://www.nmliao.cc/
-// @version      1.15
+// @version      1.16
 // @changelog    1.9 去掉男号黑名单：男生见面即换人，不再累积名单
 // @changelog    1.10 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.11 更新地址切换到 gh-proxy.org
@@ -9,6 +9,7 @@
 // @changelog    1.13 接入 APP 桥 GM4W + 女生匹配红色日志 + 匹配统计
 // @changelog    1.14 狗头可拖动(位置记忆)；对方消息橙色；隐藏消息页右下角回底箭头(可关)
 // @changelog    1.15 回底箭头改为按站点真实 SVG path 精准隐藏（不再用类名猜测）
+// @changelog    1.16 修复：不再按 path 一刀切隐藏（会连发送键一起藏），改为只在输入栏上方隐藏箭头
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E7%BC%98%E8%B5%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E7%BC%98%E8%B5%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  缘起聊天(nmliao.cc)：纯 socket 自动匹配，配到即自动建会话发「哈喽」；自动回复与捞在线均可在面板设间隔
@@ -771,50 +772,66 @@
   }
 
   // ---------- 隐藏消息页右下角“回到底部”箭头 ----------
-  // 站点实际元素：圆形 SVG 图标，path d 以 "M24 44C35.0457 44 44 35.0457 44 24" 开头，fill/stroke #acacac
+  // 注意：这个圆形 SVG 和“发送”键是同一套 path（M24 44C35.0457…/#acacac），
+  // 所以绝不能按 path 一刀切隐藏，只能靠“位置”区分：箭头在输入栏上方，发送键贴底。
   const ARROW_D = 'M24 44C35.0457';
-  const ARROW_CSS = 'svg:has(path[d^="M24 44C35.0457"]){display:none!important;pointer-events:none!important}';
 
   function applyHideArrow() {
-    let st = document.getElementById('nm-hide-arrow');
     if (!S.hideBottomBtn) {
-      if (st) st.remove();
       document.querySelectorAll('[data-nm-arrow]').forEach(el => {
         el.style.removeProperty('display');
         delete el.dataset.nmArrow;
       });
       return;
     }
-    if (!st) {
-      st = document.createElement('style');
-      st.id = 'nm-hide-arrow';
-      st.textContent = ARROW_CSS;
-      document.documentElement.appendChild(st);
-    }
     hideArrowNodes();
+  }
+
+  function inputBarTop() {
+    const box = document.querySelector('textarea,input[type="text"],[contenteditable="true"]');
+    if (!box) return window.innerHeight;
+    const r = box.getBoundingClientRect();
+    return r.top || window.innerHeight;
   }
 
   function hideArrowNodes() {
     try {
-      const paths = document.querySelectorAll('svg path');
-      for (const p of paths) {
+      const vh = window.innerHeight;
+      const barTop = inputBarTop();
+      document.querySelectorAll('svg path').forEach(p => {
         const d = (p.getAttribute('d') || '').replace(/\s+/g, ' ');
-        if (!d.startsWith(ARROW_D)) continue;
+        if (!d.startsWith(ARROW_D)) return;
+
+        // 往上找图标所在的按钮壳（24~96px 那层）
         let target = p.closest('svg') || p;
-        // 顺着父级往上找真正的按钮壳（宽度/高度 24~90 的那层）
         let cur = target;
-        for (let i = 0; i < 4 && cur && cur.parentElement; i++) {
+        for (let i = 0; i < 3 && cur && cur.parentElement; i++) {
           const up = cur.parentElement;
-          if (up.id === 'nm-panel' || up.closest('#nm-panel')) break;
+          if (up.id === 'nm-panel' || (up.closest && up.closest('#nm-panel'))) break;
           const r = up.getBoundingClientRect();
-          if (r.width >= 24 && r.width <= 90 && r.height >= 24 && r.height <= 90) target = up;
+          if (r.width >= 24 && r.width <= 96 && r.height >= 24 && r.height <= 96) target = up;
           else break;
           cur = up;
         }
-        if (target.dataset.nmArrow) continue;
+        if (target.dataset.nmArrow) return;
+
+        const r = target.getBoundingClientRect();
+        // 1) 太贴底 → 是发送键，绝不动
+        if (r.bottom > vh - 70) return;
+        // 2) 比输入栏还低（压在输入栏里）→ 也是发送键/输入栏控件，绝不动
+        if (barTop < vh && r.bottom > barTop - 6) return;
+        // 3) 祖先里带输入框/发送区 → 不动
+        let up = target.parentElement;
+        for (let i = 0; i < 4 && up; i++) {
+          if (up.querySelector && up.querySelector('textarea,input,[contenteditable]')) return;
+          up = up.parentElement;
+        }
+        // 4) 类名明确是发送/输入 → 不动
+        if (target.closest && target.closest('[class*="send"],[class*="input"],[class*="editor"]')) return;
+
         target.dataset.nmArrow = '1';
         target.style.setProperty('display', 'none', 'important');
-      }
+      });
     } catch (e) {}
   }
 
