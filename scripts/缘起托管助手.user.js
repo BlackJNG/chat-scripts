@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         缘起托管助手（狗头军师版）
 // @namespace    https://www.nmliao.cc/
-// @version      1.16
+// @version      1.17
 // @changelog    1.9 去掉男号黑名单：男生见面即换人，不再累积名单
 // @changelog    1.10 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.11 更新地址切换到 gh-proxy.org
@@ -10,6 +10,7 @@
 // @changelog    1.14 狗头可拖动(位置记忆)；对方消息橙色；隐藏消息页右下角回底箭头(可关)
 // @changelog    1.15 回底箭头改为按站点真实 SVG path 精准隐藏（不再用类名猜测）
 // @changelog    1.16 修复：不再按 path 一刀切隐藏（会连发送键一起藏），改为只在输入栏上方隐藏箭头
+// @changelog    1.17 排除名单补 .inputbox-send-button / #inputbox-message，双保险不碰发送键
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E7%BC%98%E8%B5%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E7%BC%98%E8%B5%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  缘起聊天(nmliao.cc)：纯 socket 自动匹配，配到即自动建会话发「哈喽」；自动回复与捞在线均可在面板设间隔
@@ -826,8 +827,8 @@
           if (up.querySelector && up.querySelector('textarea,input,[contenteditable]')) return;
           up = up.parentElement;
         }
-        // 4) 类名明确是发送/输入 → 不动
-        if (target.closest && target.closest('[class*="send"],[class*="input"],[class*="editor"]')) return;
+        // 4) 类名明确是发送/输入 → 不动（本站发送键是 .inputbox-send-button，输入框 #inputbox-message）
+        if (target.closest && target.closest('[class*="send"],[class*="input"],[class*="editor"],[class*="inputbox"],#inputbox-message')) return;
 
         target.dataset.nmArrow = '1';
         target.style.setProperty('display', 'none', 'important');
