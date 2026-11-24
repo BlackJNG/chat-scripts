@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         缘起托管助手（狗头军师版）
 // @namespace    https://www.nmliao.cc/
-// @version      1.14
+// @version      1.15
 // @changelog    1.9 去掉男号黑名单：男生见面即换人，不再累积名单
 // @changelog    1.10 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.11 更新地址切换到 gh-proxy.org
 // @changelog    1.12 移除内置智谱 Key（公开仓库泄露），改为本机填写
 // @changelog    1.13 接入 APP 桥 GM4W + 女生匹配红色日志 + 匹配统计
 // @changelog    1.14 狗头可拖动(位置记忆)；对方消息橙色；隐藏消息页右下角回底箭头(可关)
+// @changelog    1.15 回底箭头改为按站点真实 SVG path 精准隐藏（不再用类名猜测）
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E7%BC%98%E8%B5%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E7%BC%98%E8%B5%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  缘起聊天(nmliao.cc)：纯 socket 自动匹配，配到即自动建会话发「哈喽」；自动回复与捞在线均可在面板设间隔
@@ -770,20 +771,17 @@
   }
 
   // ---------- 隐藏消息页右下角“回到底部”箭头 ----------
-  const ARROW_CSS = [
-    '[class*="to-bottom"],[class*="toBottom"],[class*="scroll-bottom"],[class*="scrollBottom"]',
-    '[class*="back-bottom"],[class*="backBottom"],[class*="go-bottom"],[class*="goBottom"]',
-    '[class*="down-arrow"],[class*="downArrow"],[class*="bottom-arrow"],[class*="bottomArrow"]',
-    '[class*="scroll-to"],[class*="scrollTo"],[class*="toDown"],[class*="to-down"]',
-  ].join(',') + '{display:none!important}';
+  // 站点实际元素：圆形 SVG 图标，path d 以 "M24 44C35.0457 44 44 35.0457 44 24" 开头，fill/stroke #acacac
+  const ARROW_D = 'M24 44C35.0457';
+  const ARROW_CSS = 'svg:has(path[d^="M24 44C35.0457"]){display:none!important;pointer-events:none!important}';
 
   function applyHideArrow() {
     let st = document.getElementById('nm-hide-arrow');
     if (!S.hideBottomBtn) {
       if (st) st.remove();
       document.querySelectorAll('[data-nm-arrow]').forEach(el => {
-        el.style.display = el.dataset.nmArrowOld || '';
-        delete el.dataset.nmArrow; delete el.dataset.nmArrowOld;
+        el.style.removeProperty('display');
+        delete el.dataset.nmArrow;
       });
       return;
     }
@@ -793,25 +791,30 @@
       st.textContent = ARROW_CSS;
       document.documentElement.appendChild(st);
     }
-    sweepArrow();
+    hideArrowNodes();
   }
 
-  // 只认“固定在右下、尺寸小、类名带 arrow/down/bottom/scroll、且不在输入栏里”的元素
-  function sweepArrow() {
+  function hideArrowNodes() {
     try {
-      const vw = window.innerWidth, vh = window.innerHeight;
-      document.querySelectorAll('[class]').forEach(el => {
-        if (el.dataset.nmArrow || el.id === 'nm-panel' || el.closest('#nm-panel')) return;
-        if (!/arrow|down|bottom|scroll/i.test(String(el.className || ''))) return;
-        const r = el.getBoundingClientRect();
-        if (r.width < 12 || r.height < 12 || r.width > 64 || r.height > 64) return;
-        if (r.right < vw - 80 || r.bottom < 60 || r.bottom > vh - 56) return;
-        if (getComputedStyle(el).position === 'static') return;
-        if (el.closest('[class*="input"],[class*="send"],[class*="editor"],[class*="footer"],[class*="textarea"]')) return;
-        el.dataset.nmArrowOld = el.style.display || '';
-        el.dataset.nmArrow = '1';
-        el.style.setProperty('display', 'none', 'important');
-      });
+      const paths = document.querySelectorAll('svg path');
+      for (const p of paths) {
+        const d = (p.getAttribute('d') || '').replace(/\s+/g, ' ');
+        if (!d.startsWith(ARROW_D)) continue;
+        let target = p.closest('svg') || p;
+        // 顺着父级往上找真正的按钮壳（宽度/高度 24~90 的那层）
+        let cur = target;
+        for (let i = 0; i < 4 && cur && cur.parentElement; i++) {
+          const up = cur.parentElement;
+          if (up.id === 'nm-panel' || up.closest('#nm-panel')) break;
+          const r = up.getBoundingClientRect();
+          if (r.width >= 24 && r.width <= 90 && r.height >= 24 && r.height <= 90) target = up;
+          else break;
+          cur = up;
+        }
+        if (target.dataset.nmArrow) continue;
+        target.dataset.nmArrow = '1';
+        target.style.setProperty('display', 'none', 'important');
+      }
     } catch (e) {}
   }
 

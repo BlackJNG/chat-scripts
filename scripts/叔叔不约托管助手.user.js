@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         叔叔不约 · 一对一托管助手
 // @namespace    https://shushubuyue.net/
-// @version      3.0.5
+// @version      3.0.6
 // @changelog    3.0.1 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    3.0.2 更新地址切换到 gh-proxy.org
 // @changelog    3.0.3 接入 APP 桥 GM4W + 女生匹配红色日志 + 女生统计；DOM 版无消息回调，不推 msg 事件
 // @changelog    3.0.4 面板：日志移到选项上方、复选框置底；日志最新在最上（40 行可滚）
 // @changelog    3.0.5 日志配色参数兼容（无新增行为）
+// @changelog    3.0.6 面板改指针拖动（手机可拖）+ 位置记忆
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%8F%94%E5%8F%94%E4%B8%8D%E7%BA%A6%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%8F%94%E5%8F%94%E4%B8%8D%E7%BA%A6%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  叔叔不约（shushubuyue.net/.com）随机聊天：男生秒离开、只配女生（客户端筛，不拉黑）、对方离开自动点长条离开、招呼一次不重复、面板可拖动可调间隔；不做全页 500ms 扫描，避免拖卡
@@ -192,39 +193,44 @@
       setTimeout(clampPanel, 0);
     });
 
-    /* 拖动 */
+    /* ---- 面板拖动：指针事件（鼠标/触摸同一套），位置记忆 ---- */
     const head = host.querySelector('.sb-head');
-    let drag = null;
-    const pt = (e) => {
-      const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
-      if (t && typeof t.clientX === 'number') return { x: t.clientX, y: t.clientY };
-      return { x: typeof e.clientX === 'number' ? e.clientX : 0, y: typeof e.clientY === 'number' ? e.clientY : 0 };
-    };
-    head.addEventListener('mousedown', (e) => {
-      if (e.target.classList.contains('sb-min')) return;
-      const p = pt(e), r = host.getBoundingClientRect();
-      drag = { dx: p.x - r.left, dy: p.y - r.top };
-      host.style.left = r.left + 'px'; host.style.top = r.top + 'px';
+    head.style.touchAction = 'none';
+    const placePanel = (l, t) => {
+      const w = host.offsetWidth || 240, h = host.offsetHeight || 200;
+      l = Math.min(Math.max(2, l), Math.max(2, window.innerWidth - w - 2));
+      t = Math.min(Math.max(2, t), Math.max(2, window.innerHeight - h - 2));
+      host.style.left = l + 'px'; host.style.top = t + 'px';
       host.style.right = 'auto'; host.style.bottom = 'auto';
+      return { l: Math.round(l), t: Math.round(t) };
+    };
+    try {
+      const saved = JSON.parse(localStorage.getItem('sb_panel_pos') || 'null');
+      if (saved && typeof saved.l === 'number') placePanel(saved.l, saved.t);
+    } catch (e) {}
+    let drag = null, lastPos = null;
+    head.addEventListener('pointerdown', e => {
+      if (e.target && e.target.classList && e.target.classList.contains('sb-min')) return;
+      if (e.target && e.target.closest && e.target.closest('button,input,label,a')) {
+        if (!e.target.closest('.sb-min')) return;
+      }
+      const r = host.getBoundingClientRect();
+      drag = { x: e.clientX, y: e.clientY, l: r.left, t: r.top };
+      lastPos = { l: r.left, t: r.top };
+      try { head.setPointerCapture(e.pointerId); } catch (_) {}
+      e.preventDefault();
     });
-    head.addEventListener('touchstart', (e) => {
-      if (e.target.classList.contains('sb-min')) return;
-      const p = pt(e), r = host.getBoundingClientRect();
-      drag = { dx: p.x - r.left, dy: p.y - r.top };
-      host.style.left = r.left + 'px'; host.style.top = r.top + 'px';
-      host.style.right = 'auto'; host.style.bottom = 'auto';
-    }, { passive: true });
-    const move = (e) => {
+    head.addEventListener('pointermove', e => {
       if (!drag) return;
-      const p = pt(e);
-      host.style.left = Math.max(0, Math.min(window.innerWidth - 60, p.x - drag.dx)) + 'px';
-      host.style.top = Math.max(0, Math.min(window.innerHeight - 40, p.y - drag.dy)) + 'px';
+      lastPos = placePanel(drag.l + (e.clientX - drag.x), drag.t + (e.clientY - drag.y));
+    });
+    const endDrag = () => {
+      if (!drag) return;
+      drag = null;
+      try { localStorage.setItem('sb_panel_pos', JSON.stringify(lastPos || { l: 0, t: 0 })); } catch (_) {}
     };
-    document.addEventListener('mousemove', move);
-    document.addEventListener('touchmove', move, { passive: true });
-    const up = () => { if (drag) { drag = null; clampPanel(); } };
-    document.addEventListener('mouseup', up);
-    document.addEventListener('touchend', up);
+    head.addEventListener('pointerup', endDrag);
+    head.addEventListener('pointercancel', endDrag);
     window.addEventListener('resize', clampPanel);
 
     host.querySelector('#sb-toggle').addEventListener('click', () => {

@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         巧巧 / 迷迷 · 一对一托管助手
 // @namespace    https://qiaoqiao.chat/
-// @version      1.3.5
+// @version      1.3.6
 // @changelog    1.3.1 增加 @updateURL/@downloadURL，支持油猴自动检查更新
 // @changelog    1.3.2 更新地址切换到 gh-proxy.org
 // @changelog    1.3.3 接入 APP 桥 GM4W + 女生匹配红色日志（统计原已有：匹配/女生）
 // @changelog    1.3.4 面板：日志移到选项上方、复选框置底；日志最新在最上（40 行可滚）
 // @changelog    1.3.5 TA 对方消息橙色
+// @changelog    1.3.6 面板改指针拖动（手机可拖）+ 位置记忆
 // @updateURL    https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%B7%A7%E5%B7%A7%E8%BF%B7%E8%BF%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @downloadURL  https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%B7%A7%E5%B7%A7%E8%BF%B7%E8%BF%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js
 // @description  巧巧/迷迷 一对一自动匹配 + 自动接话（NIM SDK 层）；默认不筛性别、不带服务端筛选参数，配到人直接聊；换人间隔可自设；拦截站点反调试跳转；资料栏/跳过机器人/面板可拖动
@@ -986,35 +987,45 @@
       } else if (contactInfo().imId) renderMeta(contactInfo());
     });
 
-    /* ---- 面板拖动（mouse/touch 都走 getPoint，避免 TouchEvent 没有 clientX 报错） ---- */
+    /* ---- 面板拖动：指针事件（鼠标/触摸同一套），位置记忆 ---- */
     const head = host.querySelector('.ars-head');
-    head.style.cursor = 'move';
-    let drag = null;
-    const onDown = (e) => {
+    head.style.touchAction = 'none';
+    const placePanel = (l, t) => {
+      const w = host.offsetWidth || 240, h = host.offsetHeight || 200;
+      l = Math.min(Math.max(2, l), Math.max(2, window.innerWidth - w - 2));
+      t = Math.min(Math.max(2, t), Math.max(2, window.innerHeight - h - 2));
+      host.style.left = l + 'px'; host.style.top = t + 'px';
+      host.style.right = 'auto'; host.style.bottom = 'auto';
+      return { l: Math.round(l), t: Math.round(t) };
+    };
+    try {
+      const saved = JSON.parse(localStorage.getItem('qc_panel_pos') || 'null');
+      if (saved && typeof saved.l === 'number') placePanel(saved.l, saved.t);
+    } catch (e) {}
+    let drag = null, lastPos = null;
+    head.addEventListener('pointerdown', e => {
       if (e.target && e.target.classList && e.target.classList.contains('ars-min')) return;
-      const p = DOMX.point(e);
+      if (e.target && e.target.closest && e.target.closest('button,input,label,a')) {
+        if (!e.target.closest('.ars-min')) return;
+      }
       const r = host.getBoundingClientRect();
-      drag = { dx: p.x - r.left, dy: p.y - r.top };
-      host.style.left = r.left + 'px';
-      host.style.top = r.top + 'px';
-      host.style.right = 'auto';
-      host.style.bottom = 'auto';
-    };
-    const onMove = (e) => {
+      drag = { x: e.clientX, y: e.clientY, l: r.left, t: r.top };
+      lastPos = { l: r.left, t: r.top };
+      try { head.setPointerCapture(e.pointerId); } catch (_) {}
+      e.preventDefault();
+    });
+    head.addEventListener('pointermove', e => {
       if (!drag) return;
-      const p = DOMX.point(e);
-      const lx = Math.max(0, Math.min(window.innerWidth - 60, p.x - drag.dx));
-      const ly = Math.max(0, Math.min(window.innerHeight - 40, p.y - drag.dy));
-      host.style.left = lx + 'px';
-      host.style.top = ly + 'px';
+      lastPos = placePanel(drag.l + (e.clientX - drag.x), drag.t + (e.clientY - drag.y));
+    });
+    const endDrag = () => {
+      if (!drag) return;
+      drag = null;
+      try { localStorage.setItem('qc_panel_pos', JSON.stringify(lastPos || { l: 0, t: 0 })); } catch (_) {}
     };
-    const onUp = () => { if (!drag) return; drag = null; clampPanelToViewport(); };
-    head.addEventListener('mousedown', onDown);
-    head.addEventListener('touchstart', onDown, { passive: true });
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('touchmove', onMove, { passive: true });
-    document.addEventListener('mouseup', onUp);
-    document.addEventListener('touchend', onUp);
+    head.addEventListener('pointerup', endDrag);
+    head.addEventListener('pointercancel', endDrag);
+
 
     btnToggle.addEventListener('click', () => {
       cfg.on = !cfg.on; saveCfg();
