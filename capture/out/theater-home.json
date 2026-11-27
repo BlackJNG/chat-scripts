@@ -1,0 +1,55 @@
+{
+ "url": "https://mamaduanju.com/theater",
+ "path": "/theater",
+ "title": "剧场 · 短剧推荐 - MaMa短剧",
+ "feedKey": "ep:42931:1",
+ "feedCls": "feed mobile theater-feed short-mobile-layout embedded-feed-layout",
+ "videos": [
+  {
+   "cls": "vslot",
+   "src": "blob:https://m",
+   "paused": false,
+   "t": "3.3",
+   "rs": 4,
+   "w": 390,
+   "h": 761
+  },
+  {
+   "cls": "vslot off",
+   "src": "blob:https://m",
+   "paused": true,
+   "t": "0.0",
+   "rs": 4,
+   "w": 390,
+   "h": 761
+  },
+  {
+   "cls": "vslot off",
+   "src": "",
+   "paused": true,
+   "t": "0.0",
+   "rs": 0,
+   "w": 390,
+   "h": 761
+  }
+ ],
+ "seriesTitle": "",
+ "strongTitle": "葫芦妹救奶奶第二季",
+ "epLabel": "第1集",
+ "descText": "[姐妹救亲＋妖洞闯阵＋全员整活+轻度SM+多人群p]\n奶奶被掳，大姐喝酒喝进牢房。二姐橙瞳凭千里眼、顺风耳闯入妖洞，刚破镜阵，又被摄魂鼓点拉进群妖舞局。七姐妹轮番出山，究竟是救人，还是排队送上门？这场妖洞闹剧，才刚开始。",
+ "tags": [],
+ "footer": "",
+ "peekNext": "",
+ "epLinks": 0,
+ "totalHint": [
+  "已更新11集",
+  "已更新3集",
+  "全 9 集",
+  "全3集"
+ ],
+ "theaterLinks": [
+  "剧场 -> /theater",
+  " -> /theater",
+  "探索 -> /theater"
+ ]
+}

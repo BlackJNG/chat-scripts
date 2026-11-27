@@ -1,0 +1,55 @@
+{
+ "url": "https://mamaduanju.com/drama/ren-yi-men/ep-1",
+ "path": "/drama/ren-yi-men/ep-1",
+ "title": "任意门 第1集 - MaMa短剧",
+ "feedKey": "43024-1",
+ "feedCls": "feed mobile theater-series short-mobile-layout with-episode-footer",
+ "videos": [
+  {
+   "cls": "vslot",
+   "src": "blob:https://m",
+   "paused": false,
+   "t": "6.3",
+   "rs": 4,
+   "w": 390,
+   "h": 776
+  },
+  {
+   "cls": "vslot off",
+   "src": "blob:https://m",
+   "paused": true,
+   "t": "0.0",
+   "rs": 4,
+   "w": 390,
+   "h": 776
+  },
+  {
+   "cls": "vslot off",
+   "src": "blob:https://m",
+   "paused": true,
+   "t": "0.0",
+   "rs": 4,
+   "w": 390,
+   "h": 776
+  }
+ ],
+ "seriesTitle": "第1集",
+ "strongTitle": "任意门",
+ "epLabel": "第1集",
+ "descText": "第1集 · 任意门 #短剧",
+ "tags": [
+  "情色",
+  "脑洞"
+ ],
+ "footer": "选集 · 连载中 · 已更新5集",
+ "peekNext": "@黄果短剧官方合作伙伴第2集 · 任意门 #短剧",
+ "epLinks": 6,
+ "totalHint": [
+  "已更新5集",
+  "全10集"
+ ],
+ "theaterLinks": [
+  "剧场 -> /theater",
+  " -> /theater"
+ ]
+}

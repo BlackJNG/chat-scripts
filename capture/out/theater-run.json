@@ -1,64 +1,45 @@
 {
- "at": "2026-11-27T17:46:07.496Z",
+ "at": "2026-11-27T17:48:33.403Z",
  "log": [
   {
-   "step": "detail-entries",
-   "slug": "ren-yi-men",
-   "entries": [
-    {
-     "tag": "A",
-     "text": "剧场",
-     "href": "/theater",
-     "cls": "item"
-    },
-    {
-     "tag": "A",
-     "text": "",
-     "href": "/theater",
-     "cls": ""
-    },
-    {
-     "tag": "A",
-     "text": "",
-     "href": "/settings/feedback",
-     "cls": ""
-    },
-    {
-     "tag": "A",
-     "text": "第 1 集 立即播放",
-     "href": "/drama/ren-yi-men/ep-1",
-     "cls": "hbtn play"
-    },
-    {
-     "tag": "BUTTON",
-     "text": "稍后再看",
-     "href": "",
-     "cls": "hbtn ghost"
-    },
-    {
-     "tag": "BUTTON",
-     "text": "查看更多评论",
-     "href": "",
-     "cls": "comment-more"
-    },
-    {
-     "tag": "A",
-     "text": "立即播放",
-     "href": "/drama/ren-yi-men/ep-1",
-     "cls": "detail-continue"
-    }
-   ]
+   "name": "theater-home",
+   "url": "https://mamaduanju.com/theater",
+   "videos": 3,
+   "cls": "feed mobile theater-feed short-mobile-layout embedded-feed-layout",
+   "feedKey": "ep:42931:1"
   },
   {
-   "step": "clicked",
-   "before": "https://mamaduanju.com/drama/ren-yi-men",
-   "after": "https://mamaduanju.com/drama/ren-yi-men"
+   "step": "theater-first-card",
+   "firstCard": {
+    "tag": "A",
+    "href": "/drama/hu-lu-mei-jiu-nai-nai-di-er-ji",
+    "cls": "fc",
+    "text": "第1集 / 共11集\n葫芦妹救奶奶第二季"
+   }
   },
   {
-   "step": "captured",
-   "url": "https://mamaduanju.com/drama/ren-yi-men",
-   "cls": "",
-   "videos": 0
+   "step": "theater-click",
+   "after": "https://mamaduanju.com/theater"
+  },
+  {
+   "name": "theater-item",
+   "url": "https://mamaduanju.com/theater",
+   "videos": 3,
+   "cls": "feed mobile theater-feed short-mobile-layout embedded-feed-layout",
+   "feedKey": "ep:42931:1"
+  },
+  {
+   "step": "ep-page-click",
+   "before": "https://mamaduanju.com/drama/ren-yi-men/ep-1",
+   "after": "https://mamaduanju.com/drama/ren-yi-men/ep-1",
+   "clicked": true
+  },
+  {
+   "name": "ep-after-play",
+   "url": "https://mamaduanju.com/drama/ren-yi-men/ep-1",
+   "videos": 3,
+   "cls": "feed mobile theater-series short-mobile-layout with-episode-footer",
+   "feedKey": "43024-1"
   }
  ]
 }
