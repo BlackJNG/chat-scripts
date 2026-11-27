@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         短剧干净播放器V5.0
 // @namespace    http://tampermonkey.net/
-// @version      8.4
-// @description  干净播放器（多站点可配置模板）：卡片直达开播 + 追剧库 + 站点配置切换/编辑。原站为默认配置，新站用 live 模式读 blob 播放。
+// @version      8.5
+// @description  干净播放器（多站点可配置模板）：卡片直达开播 + 追剧库 + 站点配置切换/编辑。原站为默认配置，新站用 live 模式读 blob 播放；v8.5 新增妈妈短剧（mamaduanju.com）多 video 取活跃源、金币集标记跳过。
 // @author       You
 // @match        *://*/*
 // @grant        GM_addStyle
@@ -14,7 +14,7 @@
 (function() {
     'use strict';
 
-    const SCRIPT_VERSION = '8.4';
+    const SCRIPT_VERSION = '8.5';
     const TRACK_KEY = 'sdTrackData_v1';   // 沿用旧版追剧数据，升级不丢
     const SITES_KEY = 'sdSitesV8';        // 用户编辑后的站点配置（覆盖内置）
     const ACTIVE_KEY = 'sdActiveSite';    // 当前激活站点 id
@@ -73,6 +73,31 @@
                     currentEp: 'path:/drama/video/\\d+/ep-(\\d+)'
                 }
             }
+        },
+        {
+            // 妈妈短剧 mamaduanju.com：Vue SPA，剧集用拼音 slug（/drama/{slug}/ep-{n}）
+            // 播放页 3 个 blob <video>（预载/多播放器），必须挑「正在播的那个」，见 pickLiveVideo
+            // 付费集 class 为 ep locked（48金币），脚本只跟免费集，锁集点一下只提示不跳转
+            id: 'mamaduanju', name: '妈妈短剧', hosts: ['mamaduanju.com'],
+            card: {
+                selector: 'a[href*="/drama/"]',        // 列表卡 / 轮播卡 / 选集都是这种链接
+                titleSel: '',                          // 无统一标题类名，取卡片文本兜底
+                idFrom: 'href:/drama/([a-z0-9][a-z0-9-]*)(?:/ep-(\\d+))?'
+            },
+            play: {
+                mode: 'live',
+                pathTest: '/drama/([^/]+)/ep-(\\d+)',
+                urlTpl: '/drama/{id}/ep-1',
+                epTpl: '/drama/{id}/ep-{ep}',
+                videoSel: 'video',
+                epHrefTest: '/drama/([^/]+)/ep-(\\d+)',
+                totalEpText: '共\\s*(\\d+)\\s*集',      // 页面若写「共N集」优先用它，否则按选集数
+                lockTest: 'locked|金币|解锁',          // 选集节点的锁定特征（class 或文本）
+                rules: {
+                    videoId:   'path:/drama/([^/]+)/ep-',
+                    currentEp: 'path:/ep-(\\d+)'
+                }
+            }
         }
     ];
 
@@ -80,7 +105,15 @@
     let sites = SITES_DEFAULT.map(function(s){ return JSON.parse(JSON.stringify(s)); });
     try {
         const raw = GM_getValue(SITES_KEY, null);
-        if (Array.isArray(raw) && raw.length) sites = raw;
+        if (Array.isArray(raw) && raw.length) {
+            sites = raw;
+            // 旧配置只存了自己编辑过的条目：内置新增站点（如妈妈短剧）自动补进来，不覆盖用户改动
+            const have = {};
+            sites.forEach(function(s){ if (s && s.id) have[s.id] = 1; });
+            SITES_DEFAULT.forEach(function(d){
+                if (!have[d.id]) sites.push(JSON.parse(JSON.stringify(d)));
+            });
+        }
     } catch(e){}
     let activeSiteId = 'origin';
     try { const a = GM_getValue(ACTIVE_KEY, null); if (a) activeSiteId = a; } catch(e){}
@@ -109,6 +142,9 @@
         // 3) 列表/详情页：卡片选择器命中且能取到 id
         if (typeof document !== 'undefined' && document.querySelector){
             for (let i = 0; i < sites.length; i++){
+                // 声明了 hosts 的站点只在自家域名上参与兜底识别，避免宽松选择器串站
+                const hs = sites[i].hosts || [];
+                if (hs.length && !hs.some(function(h){ return location.hostname.indexOf(h) >= 0; })) continue;
                 const cs = sites[i].card && sites[i].card.selector;
                 if (cs){ try { const el = document.querySelector(cs); if (el && cardIdFrom(el, sites[i])) return sites[i]; } catch(e){} }
             }
@@ -207,6 +243,7 @@
     cursor:pointer;font-size:13px;text-align:center;
 }
 .sd-ep-item.active{background:#e74c3c;color:#fff;font-weight:bold;}
+.sd-ep-item.locked{opacity:.5;background:#1a1a1a;color:#888;text-decoration:line-through;}
 .sd-ep-pager{display:flex;gap:8px;justify-content:center;align-items:center;padding:14px 0 0;}
 
 /* ===== 追剧库（界面照「追剧列表效果预览.html」）===== */
@@ -430,6 +467,33 @@
         return fillTpl(site.play.epTpl, id, ep);
     }
 
+    // live 站点常有多个 <video>（预载下一集 / 广告层 / 多播放器），取「真正在播的那个」
+    // 优先级：未暂停且有数据 > 可视面积最大 > 第一个 blob；都没有就退回第一个元素
+    function pickLiveVideo(sel){
+        let list = [];
+        try { list = Array.prototype.slice.call(document.querySelectorAll(sel || 'video')); } catch(e){ list = []; }
+        if (!list.length) return null;
+        const isBlob = function(v){ return v && v.src && String(v.src).indexOf('blob:') === 0; };
+        let playing = null, biggest = null, biggestArea = -1, firstBlob = null;
+        for (let i = 0; i < list.length; i++){
+            const v = list[i];
+            if (!isBlob(v)) continue;
+            if (!firstBlob) firstBlob = v;
+            if (!playing && !v.paused && v.readyState > 0) playing = v;
+            const area = (v.clientWidth || 0) * (v.clientHeight || 0);
+            if (area >= biggestArea){ biggestArea = area; biggest = v; }
+        }
+        return playing || biggest || firstBlob || list[0];
+    }
+    // 标题兜底：站点把剧名放在 <title> 里（「剧名 第N集 - 站名」），规则取不到时从这里拆
+    function docTitleClean(){
+        let t = '';
+        try { t = String(document.title || ''); } catch(e){ t = ''; }
+        t = t.replace(/\s*[-|｜·]\s*[^-|｜·]{1,20}$/,'').trim();   // 去尾部站名
+        t = t.replace(/\s*第\s*\d+\s*集(?:全集)?\s*$/,'').trim();   // 去尾部「第N集」
+        return t;
+    }
+
     // ===== 播放页解析（当前页 / live）=====
     function parseCurrentPage() {
         const site = getActiveSite();
@@ -447,15 +511,17 @@
         let desc = r.desc || '';
 
         if (play.mode === 'live') {
-            // 取实时 <video> 的 blob 地址（必须同页）
+            // 取实时 <video> 的 blob 地址（必须同页）；多 video 站点取在播的那个
             try {
-                const v = document.querySelector(play.videoSel || '.dplayer-video');
+                const v = pickLiveVideo(play.videoSel || '.dplayer-video');
                 if (v && v.src && String(v.src).indexOf('blob:') === 0) blobSrc = v.src;
             } catch(e){}
             // 选集：按 href 模式收集当前剧的集（不依赖容器 class，跨站通用）
             if (play.epHrefTest) {
                 try {
                     const re = new RegExp(play.epHrefTest);
+                    let lockExp = null;
+                    if (play.lockTest) { try { lockExp = new RegExp(play.lockTest); } catch(e){ lockExp = null; } }
                     const links = document.querySelectorAll('a[href]');
                     const seen = {};
                     epList = [];
@@ -465,11 +531,14 @@
                         if (!mm) continue;
                         if (mm[1] !== String(videoId)) continue;   // 只取当前剧
                         const ep = mm[2] ? parseInt(mm[2]) : 1;
-                        const txtEp = parseInt((links[i].textContent || '').trim());
+                        const epText = (links[i].textContent || '').trim();
+                        const txtEp = parseInt(epText);
                         const useEp = (txtEp > 0 && txtEp <= 9999) ? txtEp : ep;
                         if (seen[useEp]) continue;
                         seen[useEp] = true;
-                        epList.push({ep: useEp, href: href});
+                        // 付费/锁定集：class（ep locked）或文本（2 金币 / 48金币 / 解锁）命中即标记
+                        const locked = !!lockExp && (lockExp.test(links[i].className || '') || lockExp.test(epText));
+                        epList.push({ep: useEp, href: href, locked: locked});
                     }
                     epList.sort(function(a,b){ return a.ep - b.ep; });
                 } catch(e){ epList = null; }
@@ -512,8 +581,8 @@
         }
 
         totalEp = totalEp || (epList ? epList.length : 0) || currentEp;
-        const dramaName = (r.dramaName || r.title || '').replace(/\s*第\d+集\s*$/, '');
-        const title = r.title || '';
+        const title = r.title || docTitleClean();
+        const dramaName = (r.dramaName || title || '').replace(/\s*第\d+集\s*$/, '');
         let cover = r.cover || '';
         if (cover && !/^https?:/.test(cover)) cover = location.origin + cover;
         return {
@@ -702,7 +771,8 @@
         e.preventDefault();
         e.stopPropagation();
         const nameEl = site.card.titleSel ? card.querySelector(site.card.titleSel) : null;
-        const name = nameEl ? nameEl.textContent.trim().slice(0, 12) : '';
+        const cardText = (card.textContent || '').replace(/\s+/g, ' ').trim();
+        const name = nameEl ? nameEl.textContent.trim().slice(0, 12) : cardText.slice(0, 12);
         toast(name ? ('正在打开《' + name + '》…') : '正在打开播放器…');
 
         if (site.play.mode === 'live') {
@@ -938,7 +1008,7 @@
         box.innerHTML = '';
         const site = getActiveSite();
         let v = null;
-        try { v = document.querySelector(site.play.videoSel || '.dplayer-video'); } catch(e){}
+        try { v = pickLiveVideo(site.play.videoSel || '.dplayer-video'); } catch(e){}
         if (v && v.src && String(v.src).indexOf('blob:') === 0) {
             // 直接把原 <video> 搬进面板（同一文档，blob 有效；MediaSource 也只绑这一个元素）
             if (v.parentElement) v.parentElement.style.display = 'none';
@@ -976,37 +1046,65 @@
         const end = Math.min(current.totalEp, epPage * EP_PER_PAGE);
         // 选集 href 映射（live 模式：点真实播放页链接更准）
         const hrefMap = {};
-        if (current.epList) current.epList.forEach(function(o){ hrefMap[o.ep] = o.href; });
+        const lockMap = {};
+        if (current.epList) current.epList.forEach(function(o){ hrefMap[o.ep] = o.href; if (o.locked) lockMap[o.ep] = 1; });
         let html = '';
         for (let i = start; i <= end; i++) {
             const href = hrefMap[i] || '';
-            html += '<button class="sd-ep-item ' + (i===current.currentEp?'active':'') +
+            html += '<button class="sd-ep-item ' + (i===current.currentEp?'active':'') + (lockMap[i]?' locked':'') +
                     '" data-ep="' + i + '"' + (href ? ' data-href="' + esc(href) + '"' : '') +
+                    (lockMap[i] ? ' title="需金币解锁"' : '') +
                     '>' + i + '</button>';
         }
         document.getElementById('sdEpGrid').innerHTML = html;
         document.querySelectorAll('#sdEpGrid .sd-ep-item').forEach(btn=>{
             btn.onclick = function(){
+                const ep = parseInt(btn.dataset.ep);
+                if (btn.classList.contains('locked')) {
+                    toast('第' + ep + '集需金币解锁，脚本不跟付费集');
+                    return;
+                }
                 const h = btn.getAttribute('data-href');
                 if (h) { location.href = h; }   // live 选集：直接用真实播放页链接
-                else switchEp(parseInt(btn.dataset.ep));
+                else switchEp(ep);
             };
         });
         document.getElementById('sdEpPagePrev').disabled = epPage <= 1;
         document.getElementById('sdEpPageNext').disabled = epPage >= totalPages;
     }
 
+    // 该集是否被锁定（金币/付费）
+    function epLocked(ep){
+        if (!current || !current.epList) return false;
+        for (let k = 0; k < current.epList.length; k++){
+            if (current.epList[k].ep === ep) return !!current.epList[k].locked;
+        }
+        return false;
+    }
     function updateBar(){
         if (!current) return;
         document.getElementById('sdEpTag').textContent = '第' + current.currentEp + '集';
         document.getElementById('sdTotalEp').textContent = '共' + current.totalEp + '集';
-        document.getElementById('sdPrevEp').disabled = current.currentEp <= 1;
-        document.getElementById('sdNextEp').disabled = current.currentEp >= current.totalEp;
+        const prevLocked = epLocked(current.currentEp - 1), nextLocked = epLocked(current.currentEp + 1);
+        const btnPrev = document.getElementById('sdPrevEp'), btnNext = document.getElementById('sdNextEp');
+        btnPrev.disabled = current.currentEp <= 1 || prevLocked;
+        btnNext.disabled = current.currentEp >= current.totalEp || nextLocked;
+        btnPrev.title = prevLocked ? '上一集需金币解锁' : '';
+        btnNext.title = nextLocked ? '下一集需金币解锁' : '';
     }
 
     async function switchEp(ep){
         if (!current || ep === current.currentEp) return;
         if (ep < 1 || ep > current.totalEp) return;
+        // 付费/锁定集不跳（妈妈短剧这类按金币解锁的站，脚本只跟免费集）
+        if (current.epList) {
+            for (let k = 0; k < current.epList.length; k++){
+                if (current.epList[k].ep === ep && current.epList[k].locked) {
+                    toast('第' + ep + '集需金币解锁，已停在免费集');
+                    return;
+                }
+            }
+        }
         const site = siteById(current.site) || getActiveSite();
         if (site.play.mode === 'live') {
             // 真跳播放页，由 tryAutoOpen 重解析；优先用真实选集 href
