@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         短剧干净播放器V5.0
 // @namespace    http://tampermonkey.net/
-// @version      8.6
-// @description  干净播放器（多站点可配置模板）：卡片直达开播 + 追剧库 + 站点配置切换/编辑。原站为默认配置，新站用 live 模式读 blob 播放；v8.6 新增妈妈短剧（mamaduanju.com）：按 .vslot 槽位取在播源、金币集灰显跳过、真实选择器校正。
+// @version      8.7
+// @description  干净播放器（多站点可配置模板）：卡片直达开播 + 追剧库 + 站点配置切换/编辑。原站为默认配置，新站用 live 模式读 blob 播放；v8.7 关闭面板归还视频元素；新增妈妈短剧（mamaduanju.com）：按 .vslot 槽位取在播源、金币集灰显跳过、真实选择器校正。
 // @author       You
 // @match        *://*/*
 // @grant        GM_addStyle
@@ -14,7 +14,7 @@
 (function() {
     'use strict';
 
-    const SCRIPT_VERSION = '8.6';
+    const SCRIPT_VERSION = '8.7';
     const TRACK_KEY = 'sdTrackData_v1';   // 沿用旧版追剧数据，升级不丢
     const SITES_KEY = 'sdSitesV8';        // 用户编辑后的站点配置（覆盖内置）
     const ACTIVE_KEY = 'sdActiveSite';    // 当前激活站点 id
@@ -1030,6 +1030,7 @@
     }
 
     // live 模式：blob 同页播放（MediaSource 的 blob 不能挂两个 video，故直接搬原 <video> 最稳）
+    let liveMove = null;   // 被搬进面板的视频及其原位置，关闭时归还
     function playLiveVideo(blobUrl){
         document.getElementById('sdLoading').style.display = 'none';
         if (dp) { try { dp.destroy(); } catch(e){} dp = null; }
@@ -1040,6 +1041,8 @@
         try { v = pickLiveVideo(site.play.videoSel || '.dplayer-video'); } catch(e){}
         if (v && v.src && String(v.src).indexOf('blob:') === 0) {
             // 直接把原 <video> 搬进面板（同一文档，blob 有效；MediaSource 也只绑这一个元素）
+            // 记住原位置，关闭面板时归还，避免站点自己的播放器被搬空
+            liveMove = { el: v, parent: v.parentElement, next: v.nextSibling, hiddenParent: v.parentElement };
             if (v.parentElement) v.parentElement.style.display = 'none';
             v.controls = false; v.autoplay = true;
             v.setAttribute('playsinline', '');
@@ -1163,6 +1166,18 @@
 
     function closePanel(){
         try{ if (dp) { dp.destroy(); dp = null; } }catch(e){}
+        // 归还被搬走的 <video>：放回原父节点、恢复原样式，站点播放器才不会变空白
+        try{
+            if (liveMove && liveMove.el && liveMove.parent){
+                const v = liveMove.el;
+                v.style.width = ''; v.style.height = ''; v.style.background = '';
+                v.controls = true;
+                if (liveMove.next && liveMove.next.parentNode === liveMove.parent) liveMove.parent.insertBefore(v, liveMove.next);
+                else liveMove.parent.appendChild(v);
+                if (liveMove.hiddenParent) liveMove.hiddenParent.style.display = '';
+            }
+        }catch(e){}
+        liveMove = null;
         panel.style.display = 'none';
         floatBtn.style.display = '';
     }
