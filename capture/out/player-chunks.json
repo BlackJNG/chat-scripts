@@ -1,0 +1,115 @@
+{
+ "at": "2026-11-27T18:01:25.167Z",
+ "entry": "/_nuxt/BYHtZ9fg.js",
+ "total": 135,
+ "hot": [
+  {
+   "f": "./CEU7-M_l.js",
+   "bytes": 225221,
+   "keys": [
+    "vslot",
+    "big-play",
+    "landscape-full",
+    "theater-speed",
+    "m-progress",
+    "clear_enter",
+    "requestFullscreen",
+    "orientation",
+    "playbackRate",
+    "pointerdown",
+    "swipe",
+    "清屏"
+   ],
+   "hits": {
+    "vslot": ",a[114]||(a[114]=i(\"br\",null,null,-1)),me(w(t(wa).caption),1)])):$(\"\",!0)],2)):$(\"\",!0),i(\"div\",{class:\"vlayer\",style:Ie(t(g)?void 0:{animation:t(Xu)})},[i(\"video\",{ref_key:\"videoA\",ref:Un,class:ae([\"vslot\",{off:t(ie)!==0||!t(Le),\"peek-video\":!!t(aa)[0],\"handoff-video\":t(Rn)?.slot===0}]),style:Ie(t(aa)[0]?{transform:`translateY(${t(aa)[0]*100}%)`}:void 0),playsinline:\"\",muted:\"\",preload:\"auto\",referrerpolicy:\"no-referrer\",onProgress:ft,onLoadedmetadata:lt,",
+    "big-play": "[\"aria-label\",\"disabled\"],ug={class:\"theater-full-time\"},dg=[\"disabled\"],cg=[\"aria-label\"],vg={key:0,class:\"loading-line\",\"aria-hidden\":\"true\"},fg={key:1},mg={key:1,class:\"peek-cap\"},pg={key:0,class:\"big-play\",src:yy,width:\"64\",height:\"64\",alt:\"\",\"aria-hidden\":\"true\"},yg={class:\"err-btns\"},kg={class:\"playback-failure-actions\"},bg={class:\"err-btns\"},gg={key:0,class:\"err-id\"},hg=[\"aria-label\"],wg={key:0,class:\"loading-line\",\"aria-hidden\":\"true\"},xg={key:1},$",
+    "landscape-full": "1=[\"disabled\"],V1={class:\"spend\"},O1={class:\"bal\"},U1={class:\"vote-acts\"},q1=[\"disabled\"],bs='.info, .actions, .lock, .err button, .ctrl, .series-bar, .top-left, .m-progress, .mute-tip, .clear-exit, .landscape-full, .fullscreen-exit, .fullscreen-speed, .pw-scrim, .lk-peek, .end-card, .long-top-controls, .long-pause-controls, .long-controls, .long-mobile-controls, .theater-full-controls, .theater-bottom, .theater-info-copy, .theater-menu-layer, .theater-lan",
+    "theater-speed": "&!Ge.value&&na.value===null&&(Sn.value=!1)},3e3)}function Vu(e){H.value&&e.target?.closest?.(bs)&&vt()}function rv(e){if(e.button!==0)return;const a=e.target?.closest(\"button\");g.value&&!a?.matches(\".theater-speed-entry, .playback-route-entry, .sound-btn\")||!a||a.closest('form, [role=\"dialog\"]')||!a.matches(\".ctrl button, .actions button, .long-controls button, .long-top-controls button, .long-pause-controls button, .fullscreen-exit, .fullscreen-speed, .la",
+    "m-progress": "\"],B1={class:\"vote-chip on step-n\"},D1=[\"disabled\"],V1={class:\"spend\"},O1={class:\"bal\"},U1={class:\"vote-acts\"},q1=[\"disabled\"],bs='.info, .actions, .lock, .err button, .ctrl, .series-bar, .top-left, .m-progress, .mute-tip, .clear-exit, .landscape-full, .fullscreen-exit, .fullscreen-speed, .pw-scrim, .lk-peek, .end-card, .long-top-controls, .long-pause-controls, .long-controls, .long-mobile-controls, .theater-full-controls, .theater-bottom, .theater-info-co",
+    "clear_enter": ",{type:\"button\",class:\"theater-clear\",\"aria-label\":n.clear?\"退出清屏\":\"清屏\",\"aria-pressed\":n.clear,onClick:y[2]||(y[2]=x=>p(\"clear\"))},[i(\"img\",{src:n.clear?\"/figma/theater/fullscreen.svg\":\"/figma/theater/clear_enter.svg\",alt:\"\"},null,8,yb)],8,pb)],34))}}),bb=Lt(kb,[[\"__scopeId\",\"data-v-920ba17d\"]]),gb=[\"aria-label\"],hb=[\"aria-label\"],wb=[\"aria-label\"],xb={key:0,role:\"status\"},$b=[\"disabled\",\"aria-selected\",\"onClick\"],Cb=_t({__name:\"MobileTheaterSideMenu\",props",
+    "requestFullscreen": "try{b?.unlock?.()}catch{}},k=async()=>{if(n.fullscreenElement===n.documentElement)try{await n.exitFullscreen?.()}catch{}};return{async enter(){if(o)return;const B=++x;o=!0,p(!0);try{n.documentElement.requestFullscreen&&(y=!0,await n.documentElement.requestFullscreen())}catch{B===x&&(y=!1)}if(B!==x){o||await k();return}try{await b?.lock?.(\"landscape\")}catch{}B!==x&&!o&&M()},exit(){return++x,o=!1,y=!1,p(!1),M(),k()},externalExit(){!o||!y||n.fullscreenElement",
+    "orientation": "e=A.value,a=e?.closest(\".stage\");if(e){if(U.value){await Vl();return}if(g.value&&!document.fullscreenElement&&!Fa(e)&&ke.value&&zy(e.videoWidth,e.videoHeight,!1)){Dl(),os||=qy(document,window.screen?.orientation,l=>{Wa(),U.value=l,H.value=l}),await os.enter();return}try{if(document.fullscreenElement){await document.exitFullscreen?.(),Bn();return}if(Fa(e)){e.webkitExitFullscreen?.(),Bn();return}if(g.value&&!ke.value&&!N.value)return;a?.requestFullscreen?(aw",
+    "playbackRate": "))return;const l=Pa();Rt=Ve(\"seg\"),Xa=W.value>0&&et?\"trial\":\"watch\",hn=l,Xa===\"trial\"&&et&&Ra.push(Rt),Kl({segmentId:Rt,segmentKind:Xa,phase:\"start\",playbackId:Xe,trialId:et||void 0,positionStartMs:l,playbackRate:e.playbackRate??1,dramaId:Number(a.drama.id)||void 0,currentEpisodeIdx:a.ep&&a.ep>0?a.ep:void 0,contentSnapshotId:zt||void 0,sourceContext:xt()})}function Nt(e,a){if(u.syncStoredSession?.(),e!==\"buffer\"&&Gl(e),!Rt||!Xe)return;if(Aa!==u.token||zn!=",
+    "pointerdown": "fault(),D.stopPropagation(),u(!0))}function J(D){D.key!==\"Escape\"&&D.stopPropagation()}return j(E,D=>{D||u()}),j(x,D=>o(\"menu\",D)),j(()=>p.visible,D=>{D===!1&&u()}),Wt(()=>{document.addEventListener(\"pointerdown\",U,!0),document.addEventListener(\"keydown\",g,!0)}),Qe(()=>{document.removeEventListener(\"pointerdown\",U,!0),document.removeEventListener(\"keydown\",g,!0)}),(D,C)=>{const te=Nc;return r(),v(\"div\",{ref_key:\"controls\",ref:M,class:ae([\"long-mobile-contr",
+    "swipe": "class:\"chrome\"},fp={class:\"pw-heading\"},mp={class:\"pw-art\"},pp=[\"src\"],yp={key:0},kp=_t({__name:\"UnlockDialogFrame\",props:{fullscreen:{type:Boolean,default:!1},reserveTabbar:{type:Boolean,default:!1},swipeable:{type:Boolean,default:!1},variant:{default:\"coin\"},dialogLabel:{},title:{},subtitle:{default:\"\"},art:{},busy:{type:Boolean,default:!1},error:{default:\"\"},modern:{type:Boolean,default:!1}},emits:[\"dismiss\",\"retry\",\"backdrop-click\",\"backdrop-down\",\"bac",
+    "清屏": "om-related\",onClick:y[1]||(y[1]=x=>p(\"related\"))},[...y[6]||(y[6]=[me(\"相关推荐\",-1),i(\"img\",{src:ev,alt:\"\"},null,-1)])])):$(\"\",!0),i(\"button\",{type:\"button\",class:\"theater-clear\",\"aria-label\":n.clear?\"退出清屏\":\"清屏\",\"aria-pressed\":n.clear,onClick:y[2]||(y[2]=x=>p(\"clear\"))},[i(\"img\",{src:n.clear?\"/figma/theater/fullscreen.svg\":\"/figma/theater/clear_enter.svg\",alt:\"\"},null,8,yb)],8,pb)],34))}}),bb=Lt(kb,[[\"__scopeId\",\"data-v-920ba17d\"]]),gb=[\"aria-label\"],hb=[\"ari"
+   }
+  },
+  {
+   "f": "./CLxqbasC.js",
+   "bytes": 15639,
+   "keys": [
+    "MediaSource"
+   ],
+   "hits": {
+    "MediaSource": "r.maxTouchPoints>1,t=/^Apple/.test(navigator.vendor)&&/Version\\//.test(r)&&/Safari\\//.test(r)&&!/(?:Chrome|Chromium|CriOS|Edg|OPR|FxiOS)\\//.test(r);return o&&(a||t)}function $e(){typeof window<\"u\"&&(\"MediaSource\"in window||\"ManagedMediaSource\"in window)&&ie().catch(()=>{});let e=null,r=0,o=null,a=null,t,c=!1,p=!1,i=-1,u=null,d,n,s,f,k=null;async function _(l,R,x,E={}){O();const q=M.enabled?{_diagnostic_owner:M.owner(),operation_id:M.newContext(),pre:E.prel"
+   }
+  },
+  {
+   "f": "./pRstQnT5.js",
+   "bytes": 54126,
+   "keys": [
+    "passive"
+   ],
+   "hits": {
+    "passive": "dow.scrollY,0),He()),Le=new ResizeObserver(xa),m.value&&Le.observe(m.value),g.value&&Le.observe(g.value),W=0,xa(),W=Math.min(Se,Ce()),B(window.scrollY),I.value=!0,window.addEventListener(\"scroll\",Ye,{passive:!0}))}function $a(){I.value&&(I.value=!1,window.removeEventListener(\"scroll\",Ye),Le?.disconnect(),Le=void 0,clearTimeout(pe),o.value?.classList.remove(\"sticky-snapping\"),M.value?.classList.remove(\"on\"))}function pn(){window.scrollTo({top:0,behavior:\"sm"
+   }
+  },
+  {
+   "f": "./CEbna4QM.js",
+   "bytes": 48892,
+   "keys": [
+    "pointerdown"
+   ],
+   "hits": {
+    "pointerdown": "n){if(x.value){x.value=null;return}Ce(\"close\")}}function Oe(v){!x.value||v.target?.closest?.(\"[data-dd]\")||(x.value=null)}return Nt(()=>{window.addEventListener(\"keydown\",ye),window.addEventListener(\"pointerdown\",Oe,!0)}),_t(()=>{window.removeEventListener(\"keydown\",ye),window.removeEventListener(\"pointerdown\",Oe,!0),clearTimeout(W)}),(v,r)=>{const M=jt,$e=ht;return s(),se(il,{to:\"body\"},[_e.open?(s(),n(\"div\",Ns,[l(\"button\",{type:\"button\",class:\"scrim\",\"ar"
+   }
+  },
+  {
+   "f": "./COIkkJnk.js",
+   "bytes": 15850,
+   "keys": [
+    "passive"
+   ],
+   "hits": {
+    "passive": "H.observe(g.value))}function V(){if(w||f===B?.matches)return;if(!B?.matches){X(M),f=!1,H?.disconnect(),window.removeEventListener(\"scroll\",p);return}const i=M;f=!0,window.addEventListener(\"scroll\",p,{passive:!0}),p(),A?de(()=>{!w&&f&&(window.scrollTo({top:i,behavior:\"instant\"}),p())}):(A=!0,n(m.value.selected)),de(ee)}_e(()=>{B=window.matchMedia(\"(max-width: 899px)\"),B.addEventListener?B.addEventListener(\"change\",V):B.addListener(V),V()}),ae(g,ee,{flush:\"p"
+   }
+  },
+  {
+   "f": "./y_7RGlPz.js",
+   "bytes": 35349,
+   "keys": [
+    "requestFullscreen",
+    "playbackRate",
+    "MediaSource"
+   ],
+   "hits": {
+    "requestFullscreen": "gth],x.value&&(x.value.playbackRate=G.value),lt(G.value===1?\"恢复常速\":`${G.value}x 倍速播放`)}async function Yt(){const t=tt.value;if(t)try{document.fullscreenElement?await document.exitFullscreen():await t.requestFullscreen()}catch{}}function Zt(){if(!q.value){b.showToast(\"未解锁，不能标记\");return}const t=`【第 ${S.value} 集 ${Ee(U.value)}】`,e=N.value&&!N.value.endsWith(`\n`)?`${N.value}\n${t}`:`${N.value}${t}`;if([...e].length>300){b.showToast(\"最多 300 字\");return}N.value=e}",
+    "playbackRate": "eturn}if(!g){$(\"failed\");return}l(),j.value=!1,ae.value=!1,I.value=\"预览加载失败，请重试\"},{canAttach:()=>i===h,canRetryEngine:()=>i===h}).then(async Y=>{if(i!==h){$(\"stale\");return}if(!Y){$(\"failed\");return}t.playbackRate=G.value,t.muted=le.value;let E=!1;if(await t.play().catch(()=>{E=!0}),i!==h){$(\"stale\");return}ae.value=!t.paused;const W=E&&t.paused;if(!p){$(W?\"attached\":\"played\");return}if(W){if(!(\"MediaSource\"in window||\"ManagedMediaSource\"in window)){$(\"atta",
+    "MediaSource": "t.playbackRate=G.value,t.muted=le.value;let E=!1;if(await t.play().catch(()=>{E=!0}),i!==h){$(\"stale\");return}ae.value=!t.paused;const W=E&&t.paused;if(!p){$(W?\"attached\":\"played\");return}if(W){if(!(\"MediaSource\"in window||\"ManagedMediaSource\"in window)){$(\"attached\");return}k&&clearTimeout(k),k=setTimeout(()=>$(i===h?\"attached\":\"stale\"),Jl)}}).catch(()=>$(i===h?\"failed\":\"stale\"))})}function Je(t){de(),S.value=t,U.value=0,q.value=!1,I.value=\"\",ke()}functio"
+   }
+  },
+  {
+   "f": "./DxqH8EQX.js",
+   "bytes": 10525,
+   "keys": [
+    "requestFullscreen",
+    "playbackRate"
+   ],
+   "hits": {
+    "requestFullscreen": "ength],n.value&&(n.value.playbackRate=y.value),Q(y.value===1?\"恢复常速\":`${y.value}x 倍速播放`)}async function xe(){const a=K.value;if(a)try{document.fullscreenElement?await document.exitFullscreen():await a.requestFullscreen()}catch{}}async function te(){const a=++N,e=M.token,u=Number(G.params.id);if(!e||!Number.isSafeInteger(u)||u<=0){m.value=!1,h.value=\"请登录订单所属账号后查看\";return}const r=await $.customRoleDetail(u);if(D||a!==N||e!==M.token)return;if(r.status!==\"y\"||!",
+    "playbackRate": "oth\",block:\"start\"})}function z(){N++,T.value=!1,S.value=0,P.value=0,R.value=\"\",g&&(clearTimeout(g),g=null),X.destroy(),n.value&&(n.value.pause(),n.value.removeAttribute(\"src\"),n.value.load(),n.value.playbackRate=y.value,n.value.muted=k.value)}async function B(a){z();const e=N,u=M.token,r=q.value;if(!r||!u)return;m.value=!0,h.value=\"\",w.value=a;const l=()=>!D&&e===N&&u===M.token;try{const f=await $.playInfo(String(r.id),a);if(!l())return;if(f.status!==\"y\"|"
+   }
+  },
+  {
+   "f": "./DruyVcbg.js",
+   "bytes": 27455,
+   "keys": [
+    "passive"
+   ],
+   "hits": {
+    "passive": "&(F=o?v?v.height+v.offsetTop:window.innerHeight:0),w()}),$e(()=>{x=!0,D=window.scrollY,v=window.visualViewport,typeof ResizeObserver<\"u\"&&(N=new ResizeObserver(w)),window.addEventListener(\"scroll\",w,{passive:!0}),window.addEventListener(\"resize\",w,{passive:!0}),v?.addEventListener(\"resize\",w,{passive:!0}),v?.addEventListener(\"scroll\",w,{passive:!0}),C()}),_e(()=>{x=!1,c&&cancelAnimationFrame(c),N?.disconnect(),window.removeEventListener(\"scroll\",w),window."
+   }
+  }
+ ]
+}
