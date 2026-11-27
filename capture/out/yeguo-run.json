@@ -1,0 +1,37 @@
+{
+ "at": "2026-11-27T19:42:13.462Z",
+ "base": "https://yeguodj.com",
+ "firstCard": "/explore/drama/",
+ "urls": [
+  {
+   "href": "/explore/drama/",
+   "cls": "flex items-center gap-[0.8rem] whitespace-nowrap rounded-[0.3rem] px-[1.2rem] py-[1rem] text-[1.6rem] leading-[2.2rem] text-[#e4e4e4]",
+   "txt": "探索分类"
+  },
+  {
+   "href": "/rank/drama/",
+   "cls": "flex items-center gap-[0.8rem] whitespace-nowrap rounded-[0.3rem] px-[1.2rem] py-[1rem] text-[1.6rem] leading-[2.2rem] text-[#e4e4e4]",
+   "txt": "排行榜"
+  },
+  {
+   "href": "/drama/detail/4423/",
+   "cls": "relative block h-[32rem] w-full desktop:absolute desktop:inset-0 desktop:h-full",
+   "txt": ""
+  },
+  {
+   "href": "/drama/detail/3935/",
+   "cls": "relative block h-[32rem] w-full desktop:absolute desktop:inset-0 desktop:h-full",
+   "txt": ""
+  },
+  {
+   "href": "/drama/detail/3506/",
+   "cls": "relative block h-[32rem] w-full desktop:absolute desktop:inset-0 desktop:h-full",
+   "txt": ""
+  },
+  {
+   "href": "/drama/detail/4444/",
+   "cls": "relative block h-[32rem] w-full desktop:absolute desktop:inset-0 desktop:h-full",
+   "txt": ""
+  }
+ ]
+}
