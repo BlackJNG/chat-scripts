@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         短剧干净播放器V5.0
 // @namespace    http://tampermonkey.net/
-// @version      8.7.2
+// @version      8.8
 // @description  干净播放器（多站点可配置模板）：卡片直达开播 + 追剧库 + 站点配置切换/编辑。原站为默认配置，新站用 live 模式读 blob 播放；v8.7 关闭面板归还视频元素；新增妈妈短剧（mamaduanju.com）：按 .vslot 槽位取在播源、金币集灰显跳过、真实选择器校正。
 // @author       You
 // @match        *://*/*
@@ -14,7 +14,7 @@
 (function() {
     'use strict';
 
-    const SCRIPT_VERSION = '8.7.2';
+    const SCRIPT_VERSION = '8.8';
     const TRACK_KEY = 'sdTrackData_v1';   // 沿用旧版追剧数据，升级不丢
     const SITES_KEY = 'sdSitesV8';        // 用户编辑后的站点配置（覆盖内置）
     const ACTIVE_KEY = 'sdActiveSite';    // 当前激活站点 id
@@ -53,7 +53,7 @@
             play: {
                 mode: 'live',                        // 真跳播放页，读实时DOM里的 video/blob → 原生video播
                 pathTest: '/drama/video/(\\d+)(?:/ep-(\\d+))?',
-                urlTpl: '/drama/video/{id}/',
+                urlTpl: '/drama/video/{id}/ep-1/',      // 站点 /drama/video/{id}/ 是中间页，直接给 ep-1
                 epTpl: '/drama/video/{id}/ep-{ep}/',
                 videoSel: '.dplayer-video',          // 播放页 <video> 选择器
                 dpSel: '.dplayer',                   // 带 data-* 元数据的 DPlayer 外层
@@ -111,6 +111,12 @@
             // 旧配置只存了自己编辑过的条目：内置新增站点（如妈妈短剧）自动补进来，不覆盖用户改动
             const have = {};
             sites.forEach(function(s){ if (s && s.id) have[s.id] = 1; });
+            // 迁移：新站旧的 urlTpl 指向 /drama/video/{id}/ 这个中间页，改回直达 ep-1（只改这一版默认值，不动用户自定义）
+            sites.forEach(function(s){
+                if (s && s.id === 'newdrama' && s.play && s.play.urlTpl === '/drama/video/{id}/') {
+                    s.play.urlTpl = '/drama/video/{id}/ep-1/';
+                }
+            });
             SITES_DEFAULT.forEach(function(d){
                 if (!have[d.id]) sites.push(JSON.parse(JSON.stringify(d)));
             });
@@ -231,6 +237,35 @@
     text-align:center;line-height:1.8;
 }
 .sd-tap.show{display:flex;}
+
+/* ===== 自绘控件层（只在搬入的站点视频上启用）===== */
+.sd-ctrl{
+    position:absolute;left:0;right:0;bottom:0;z-index:7;padding:8px 10px 10px;
+    background:linear-gradient(transparent,rgba(0,0,0,0.78));
+    display:flex;flex-direction:column;gap:2px;transition:opacity .22s;
+}
+.sd-ctrl.hide{opacity:0;pointer-events:none;}
+.sd-ctrl-row{display:flex;align-items:center;gap:6px;}
+.sd-ctrl button{
+    background:transparent;border:none;color:#fff;font-size:15px;line-height:1;
+    padding:4px 6px;cursor:pointer;min-width:26px;white-space:nowrap;
+}
+.sd-ctrl button:active{opacity:.7;}
+.sd-time{color:#ddd;font-size:12px;min-width:32px;text-align:center;font-variant-numeric:tabular-nums;}
+.sd-prog{flex:1;height:24px;position:relative;display:flex;align-items:center;touch-action:none;cursor:pointer;}
+.sd-prog::before{content:'';position:absolute;left:0;right:0;height:3px;background:rgba(255,255,255,.28);border-radius:2px;}
+.sd-prog-fill{position:absolute;left:0;height:3px;width:0;background:#e74c3c;border-radius:2px;pointer-events:none;}
+.sd-prog-knob{
+    position:absolute;left:0;width:12px;height:12px;margin-left:-6px;border-radius:50%;
+    background:#fff;box-shadow:0 0 4px rgba(0,0,0,.6);pointer-events:none;
+}
+.sd-lp-badge{
+    position:absolute;top:14px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,.72);color:#fff;font-size:13px;padding:4px 12px;border-radius:14px;
+    display:none;z-index:8;pointer-events:none;white-space:nowrap;
+}
+.sd-lp-badge.show{display:block;}
+.sd-player-wrap:fullscreen,.sd-player-wrap:-webkit-full-screen{width:100vw;height:100vh;background:#000;}
 .sd-loading{
     color:#888;text-align:center;display:flex;align-items:center;justify-content:center;
     min-height:200px;font-size:14px;
@@ -926,6 +961,20 @@
         <div class="sd-loading" id="sdLoading">加载中...</div>
         <div id="sdPlayerBox"></div>
         <div class="sd-tap" id="sdTapPlay">▶ 点击播放</div>
+        <div class="sd-ctrl hide" id="sdCtrl">
+            <div class="sd-lp-badge" id="sdLpBadge">2x 快进中</div>
+            <div class="sd-ctrl-row">
+                <button id="sdPlayToggle" aria-label="播放/暂停">▶</button>
+                <span class="sd-time" id="sdTimeCur">0:00</span>
+                <div class="sd-prog" id="sdProg" role="slider" aria-label="播放进度">
+                    <div class="sd-prog-fill" id="sdProgFill"></div>
+                    <i class="sd-prog-knob" id="sdProgKnob"></i>
+                </div>
+                <span class="sd-time" id="sdTimeAll">0:00</span>
+                <button id="sdSpeedBtn" aria-label="倍速">1x</button>
+                <button id="sdFullBtn" aria-label="全屏">⛶</button>
+            </div>
+        </div>
     </div>
     <div class="sd-toolbar">
         <button class="sd-tool-btn" id="sdPrevEp">上一集</button>
@@ -1083,6 +1132,186 @@
         if (t) t.onclick = tapToPlay;
     }, 0);
 
+    // ===== 自绘控件：播放/暂停、进度拖动、倍速、全屏、长按 2 倍 =====
+    let lcCleanup = null;
+    const RATES = [0.75, 1, 1.25, 1.5, 2, 3];
+    function fmtTime(t){
+        if (!isFinite(t) || t < 0) t = 0;
+        const m = Math.floor(t / 60), s = Math.floor(t % 60) % 60;
+        return m + ':' + (s < 10 ? '0' : '') + s;
+    }
+    function teardownLiveControls(){
+        if (!lcCleanup) return;
+        try { lcCleanup(); } catch(e){}
+        lcCleanup = null;
+    }
+    function setupLiveControls(v){
+        teardownLiveControls();
+        const wrap = v.closest ? v.closest('.sd-player-wrap') : null;
+        const ctrl = document.getElementById('sdCtrl');
+        const bar  = document.getElementById('sdProg');
+        if (!wrap || !ctrl || !bar) return;
+        const fill = document.getElementById('sdProgFill');
+        const knob = document.getElementById('sdProgKnob');
+        const tCur = document.getElementById('sdTimeCur');
+        const tAll = document.getElementById('sdTimeAll');
+        const btnPlay = document.getElementById('sdPlayToggle');
+        const btnSpeed = document.getElementById('sdSpeedBtn');
+        const btnFull = document.getElementById('sdFullBtn');
+        const badge = document.getElementById('sdLpBadge');
+        const offs = [];
+        function on(el, ev, fn, opt){ el.addEventListener(ev, fn, opt||false); offs.push(function(){ el.removeEventListener(ev, fn, opt||false); }); }
+        let hideTimer = null, dragging = false, dragPct = 0;
+        let lpTimer = null, lpHit = false, lpPrevRate = 1;
+        let downX = 0, downY = 0, downT = 0, moved = false;
+
+        let savedRate = 1;
+        try { const sr = GM_getValue('sdRate', 1); if (RATES.indexOf(Number(sr)) >= 0) savedRate = Number(sr); } catch(e){}
+        try { v.playbackRate = savedRate; } catch(e){}
+        btnSpeed.textContent = savedRate + 'x';
+
+        function showCtrl(){
+            ctrl.classList.remove('hide');
+            clearTimeout(hideTimer);
+            if (!v.paused && !dragging) {
+                hideTimer = setTimeout(function(){ if (!dragging && !v.paused) ctrl.classList.add('hide'); }, 3000);
+            }
+        }
+        function syncUI(){
+            const d = v.duration;
+            const pct = (d && isFinite(d)) ? Math.min(100, Math.max(0, v.currentTime / d * 100)) : 0;
+            if (!dragging) { fill.style.width = pct + '%'; knob.style.left = pct + '%'; }
+            tCur.textContent = fmtTime(v.currentTime);
+            tAll.textContent = fmtTime(d);
+            btnPlay.textContent = v.paused ? '▶' : '❚❚';
+        }
+        function pctFrom(e){
+            const r = bar.getBoundingClientRect();
+            if (!r.width) return 0;
+            const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+            return Math.min(100, Math.max(0, (x - r.left) / r.width * 100));
+        }
+        function seekTo(pct){
+            if (!v.duration || !isFinite(v.duration)) return;
+            try { v.currentTime = pct / 100 * v.duration; } catch(e){}
+        }
+
+        on(bar, 'pointerdown', function(e){
+            e.preventDefault(); e.stopPropagation();
+            dragging = true; clearTimeout(hideTimer);
+            try { if (bar.setPointerCapture && e.pointerId != null) bar.setPointerCapture(e.pointerId); } catch(err){}
+            dragPct = pctFrom(e);
+            fill.style.width = dragPct + '%'; knob.style.left = dragPct + '%';
+            showCtrl();
+        });
+        on(bar, 'pointermove', function(e){
+            if (!dragging) return;
+            e.preventDefault(); e.stopPropagation();
+            dragPct = pctFrom(e);
+            fill.style.width = dragPct + '%'; knob.style.left = dragPct + '%';
+        });
+        on(bar, 'pointerup', function(e){
+            if (!dragging) return;
+            dragging = false;
+            e.preventDefault(); e.stopPropagation();
+            seekTo(dragPct); showCtrl();
+        });
+        on(bar, 'pointercancel', function(){ dragging = false; });
+
+        on(btnPlay, 'click', function(e){ e.stopPropagation(); if (v.paused) tapToPlay(); else { try { v.pause(); } catch(err){} } showCtrl(); });
+        on(btnSpeed, 'click', function(e){
+            e.stopPropagation();
+            let i = 0; for (let k = 0; k < RATES.length; k++) if (Math.abs(RATES[k] - v.playbackRate) < 0.01) i = k;
+            i = (i + 1) % RATES.length;
+            const r = RATES[i];
+            try { v.playbackRate = r; } catch(err){}
+            btnSpeed.textContent = r + 'x';
+            try { GM_setValue('sdRate', r); } catch(err){}
+            showCtrl();
+        });
+
+        function inFullscreen(){
+            return document.fullscreenElement === wrap || v.webkitDisplayingFullscreen === true;
+        }
+        function toggleFull(){
+            if (inFullscreen()){
+                try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e){}
+                try { if (v.webkitDisplayingFullscreen) v.webkitExitFullscreen(); } catch(e){}
+                try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch(e){}
+                return;
+            }
+            // 只有横向视频才锁定横屏；9:16 竖剧直接铺满屏幕（模仿妈妈短剧的效果）
+            const wantLandscape = (v.videoWidth || 0) > (v.videoHeight || 0);
+            const lock = function(){
+                if (!wantLandscape) return;
+                try {
+                    if (screen.orientation && screen.orientation.lock) {
+                        const p = screen.orientation.lock('landscape');
+                        if (p && p.catch) p.catch(function(){});
+                    }
+                } catch(e){}
+            };
+            try {
+                if (wrap.requestFullscreen) {
+                    const p = wrap.requestFullscreen();
+                    if (p && p.then) p.then(lock, function(){ if (v.webkitEnterFullscreen) try{ v.webkitEnterFullscreen(); }catch(e){} });
+                    else lock();
+                } else if (v.webkitEnterFullscreen) { v.webkitEnterFullscreen(); }
+                else if (wrap.webkitRequestFullscreen) { wrap.webkitRequestFullscreen(); }
+                else { toast('当前浏览器不支持全屏'); }
+            } catch(e){ toast('暂时无法进入全屏'); }
+        }
+        on(btnFull, 'click', function(e){ e.stopPropagation(); toggleFull(); });
+        on(document, 'fullscreenchange', function(){ showCtrl(); });
+        on(v, 'webkitbeginfullscreen', function(){ showCtrl(); });
+        on(v, 'webkitendfullscreen', function(){ showCtrl(); });
+
+        // 长按 2 倍：按住 600ms 提速，松手立刻回原速（视频播放器的通用手感）
+        on(wrap, 'pointerdown', function(e){
+            if (e.target.closest && e.target.closest('#sdCtrl')) return;
+            moved = false; lpHit = false;
+            downX = e.clientX; downY = e.clientY; downT = Date.now();
+            clearTimeout(lpTimer);
+            lpTimer = setTimeout(function(){
+                lpHit = true; lpPrevRate = v.playbackRate || 1;
+                try { v.playbackRate = 2; } catch(err){}
+                badge.classList.add('show');
+                try { if (navigator.vibrate) navigator.vibrate(20); } catch(err){}
+            }, 600);
+            showCtrl();
+        });
+        on(wrap, 'pointermove', function(e){
+            if (Math.abs(e.clientX - downX) > 12 || Math.abs(e.clientY - downY) > 12) { moved = true; clearTimeout(lpTimer); }
+        });
+        on(wrap, 'pointerup', function(e){
+            clearTimeout(lpTimer);
+            if (lpHit) {
+                lpHit = false;
+                try { v.playbackRate = lpPrevRate; } catch(err){}
+                badge.classList.remove('show');
+                btnSpeed.textContent = (lpPrevRate || 1) + 'x';
+                return;
+            }
+            if (!moved && Date.now() - downT < 500 && !(e.target.closest && e.target.closest('#sdCtrl')) && !(e.target.closest && e.target.closest('#sdTapPlay'))) {
+                if (ctrl.classList.contains('hide')) showCtrl();
+                else ctrl.classList.add('hide');
+            }
+        });
+        on(wrap, 'pointercancel', function(){ clearTimeout(lpTimer); if (lpHit) { lpHit = false; try { v.playbackRate = lpPrevRate; } catch(err){} badge.classList.remove('show'); } });
+        on(wrap, 'contextmenu', function(e){ if (!(e.target.closest && e.target.closest('#sdCtrl'))) e.preventDefault(); });
+
+        on(v, 'timeupdate', syncUI);
+        on(v, 'durationchange', syncUI);
+        on(v, 'loadedmetadata', syncUI);
+        on(v, 'play', function(){ syncUI(); showCtrl(); });
+        on(v, 'pause', function(){ syncUI(); showCtrl(); });
+        on(v, 'ended', function(){ syncUI(); showCtrl(); });
+
+        syncUI();
+        showCtrl();
+        lcCleanup = function(){ offs.forEach(function(f){ try{ f(); }catch(e){} }); clearTimeout(hideTimer); clearTimeout(lpTimer); };
+    }
+
     // live 模式：blob 同页播放（MediaSource 的 blob 不能挂两个 video，故直接搬原 <video> 最稳）
     let liveMove = null;   // 被搬进面板的视频及其原位置，关闭时归还
     function playLiveVideo(blobUrl){
@@ -1108,6 +1337,7 @@
             v.style.width = '100%'; v.style.height = '100%'; v.style.background = '#000';
             box.appendChild(v);
             bindTapPlay(v);
+            setupLiveControls(v);
             v.play && v.play().catch(function(){ showTapPlay(true); });
         } else {
             // 非 blob 兜底：自建 video
@@ -1122,6 +1352,7 @@
             nv.style.width = '100%'; nv.style.height = '100%'; nv.style.background = '#000';
             box.appendChild(nv);
             bindTapPlay(nv);
+            setupLiveControls(nv);
             nv.play && nv.play().catch(function(){ showTapPlay(true); });
         }
         recordWatch();
@@ -1224,6 +1455,7 @@
     }
 
     function closePanel(){
+        try { teardownLiveControls(); } catch(e){}
         try{ if (dp) { dp.destroy(); dp = null; } }catch(e){}
         // 归还被搬走的 <video>：放回原父节点、恢复原样式，站点播放器才不会变空白
         try{
