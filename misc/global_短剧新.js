@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         短剧干净播放器V5.0
 // @namespace    http://tampermonkey.net/
-// @version      8.5
-// @description  干净播放器（多站点可配置模板）：卡片直达开播 + 追剧库 + 站点配置切换/编辑。原站为默认配置，新站用 live 模式读 blob 播放；v8.5 新增妈妈短剧（mamaduanju.com）多 video 取活跃源、金币集标记跳过。
+// @version      8.6
+// @description  干净播放器（多站点可配置模板）：卡片直达开播 + 追剧库 + 站点配置切换/编辑。原站为默认配置，新站用 live 模式读 blob 播放；v8.6 新增妈妈短剧（mamaduanju.com）：按 .vslot 槽位取在播源、金币集灰显跳过、真实选择器校正。
 // @author       You
 // @match        *://*/*
 // @grant        GM_addStyle
@@ -14,7 +14,7 @@
 (function() {
     'use strict';
 
-    const SCRIPT_VERSION = '8.5';
+    const SCRIPT_VERSION = '8.6';
     const TRACK_KEY = 'sdTrackData_v1';   // 沿用旧版追剧数据，升级不丢
     const SITES_KEY = 'sdSitesV8';        // 用户编辑后的站点配置（覆盖内置）
     const ACTIVE_KEY = 'sdActiveSite';    // 当前激活站点 id
@@ -76,12 +76,12 @@
         },
         {
             // 妈妈短剧 mamaduanju.com：Vue SPA，剧集用拼音 slug（/drama/{slug}/ep-{n}）
-            // 播放页 3 个 blob <video>（预载/多播放器），必须挑「正在播的那个」，见 pickLiveVideo
-            // 付费集 class 为 ep locked（48金币），脚本只跟免费集，锁集点一下只提示不跳转
+            // 播放页 .track 里有 3 个 .vslot 视频槽（未用的带 off 类），取在播那个，见 pickLiveVideo
+            // 付费集：<a class="ep locked"> + 48金币徽标，脚本只跟免费集，锁集点一下只提示不跳转
             id: 'mamaduanju', name: '妈妈短剧', hosts: ['mamaduanju.com'],
             card: {
-                selector: 'a[href*="/drama/"]',        // 列表卡 / 轮播卡 / 选集都是这种链接
-                titleSel: '',                          // 无统一标题类名，取卡片文本兜底
+                selector: 'a[href*="/drama/"]',        // 主列表 .home-mobile-card / 轮播 .home-hero-slide / 选集
+                titleSel: '.home-card-title',          // 主列表卡标题；轮播卡取 title 属性兜底
                 idFrom: 'href:/drama/([a-z0-9][a-z0-9-]*)(?:/ep-(\\d+))?'
             },
             play: {
@@ -91,11 +91,12 @@
                 epTpl: '/drama/{id}/ep-{ep}',
                 videoSel: 'video',
                 epHrefTest: '/drama/([^/]+)/ep-(\\d+)',
-                totalEpText: '共\\s*(\\d+)\\s*集',      // 页面若写「共N集」优先用它，否则按选集数
-                lockTest: 'locked|金币|解锁',          // 选集节点的锁定特征（class 或文本）
+                lockTest: 'locked|金币|解锁',
+                descSel: 'p.prose',                    // 页面正文简介段
                 rules: {
                     videoId:   'path:/drama/([^/]+)/ep-',
-                    currentEp: 'path:/ep-(\\d+)'
+                    currentEp: 'path:/ep-(\\d+)',
+                    title:     'sel:h1'                 // <h1>白蛇淫起 <span>第 1 集</span></h1>
                 }
             }
         }
@@ -467,30 +468,36 @@
         return fillTpl(site.play.epTpl, id, ep);
     }
 
-    // live 站点常有多个 <video>（预载下一集 / 广告层 / 多播放器），取「真正在播的那个」
-    // 优先级：未暂停且有数据 > 可视面积最大 > 第一个 blob；都没有就退回第一个元素
+    // live 站点常有多个 <video>（预载 / 备用槽 / 广告层），取「真正在播的那个」
+    // 妈妈短剧是 .vslot 槽位轮换：未用的槽带 off 类，先排除 off，再按未暂停 > 面积最大
     function pickLiveVideo(sel){
         let list = [];
         try { list = Array.prototype.slice.call(document.querySelectorAll(sel || 'video')); } catch(e){ list = []; }
         if (!list.length) return null;
         const isBlob = function(v){ return v && v.src && String(v.src).indexOf('blob:') === 0; };
-        let playing = null, biggest = null, biggestArea = -1, firstBlob = null;
-        for (let i = 0; i < list.length; i++){
-            const v = list[i];
-            if (!isBlob(v)) continue;
-            if (!firstBlob) firstBlob = v;
+        const blobs = list.filter(function(v){ return isBlob(v); });
+        const pool = blobs.length ? blobs : list;
+        const hasOff = function(v){
+            const c = String((v && v.className) || '');
+            return /(^|\s)off(\s|$)/.test(c);
+        };
+        const live = pool.filter(function(v){ return !hasOff(v); });
+        const use = live.length ? live : pool;
+        let playing = null, biggest = null, biggestArea = -1;
+        for (let i = 0; i < use.length; i++){
+            const v = use[i];
             if (!playing && !v.paused && v.readyState > 0) playing = v;
             const area = (v.clientWidth || 0) * (v.clientHeight || 0);
             if (area >= biggestArea){ biggestArea = area; biggest = v; }
         }
-        return playing || biggest || firstBlob || list[0];
+        return playing || biggest || use[0];
     }
     // 标题兜底：站点把剧名放在 <title> 里（「剧名 第N集 - 站名」），规则取不到时从这里拆
     function docTitleClean(){
         let t = '';
         try { t = String(document.title || ''); } catch(e){ t = ''; }
-        t = t.replace(/\s*[-|｜·]\s*[^-|｜·]{1,20}$/,'').trim();   // 去尾部站名
-        t = t.replace(/\s*第\s*\d+\s*集(?:全集)?\s*$/,'').trim();   // 去尾部「第N集」
+        t = t.replace(/\s*[-|｜·]\s*[^-|｜·]{1,20}$/,'').trim();       // 去尾部站名
+        t = t.replace(/\s*第\s*\d+\s*集(?:全集)?\s*$/,'').trim();        // 去尾部「第 N 集」
         return t;
     }
 
@@ -523,7 +530,7 @@
                     let lockExp = null;
                     if (play.lockTest) { try { lockExp = new RegExp(play.lockTest); } catch(e){ lockExp = null; } }
                     const links = document.querySelectorAll('a[href]');
-                    const seen = {};
+                    const seenIdx = {};
                     epList = [];
                     for (let i = 0; i < links.length; i++){
                         const href = links[i].getAttribute('href') || links[i].href || '';
@@ -531,16 +538,36 @@
                         if (!mm) continue;
                         if (mm[1] !== String(videoId)) continue;   // 只取当前剧
                         const ep = mm[2] ? parseInt(mm[2]) : 1;
-                        const epText = (links[i].textContent || '').trim();
-                        const txtEp = parseInt(epText);
-                        const useEp = (txtEp > 0 && txtEp <= 9999) ? txtEp : ep;
-                        if (seen[useEp]) continue;
-                        seen[useEp] = true;
+                        const epText = (links[i].textContent || '').replace(/\s+/g, ' ').trim();
+                        // 集号优先级：显式的 .episode-number > href 里的 ep 号 > 文本开头数字
+                        // （妈妈短剧锁定集 textContent 是「248金币」，直接捞首位数字会得到 248，必须避开）
+                        let useEp = 0;
+                        const numEl = links[i].querySelector ? links[i].querySelector('.episode-number') : null;
+                        if (numEl) {
+                            const n = parseInt(String(numEl.textContent || '').replace(/[^\d]/g, ''));
+                            if (n > 0 && n <= 9999) useEp = n;
+                        }
+                        if (!useEp && mm[2]) useEp = parseInt(mm[2]);
+                        if (!useEp) {
+                            const lead = epText.match(/^(\d{1,4})(?![0-9])/);
+                            if (lead) useEp = parseInt(lead[1]);
+                        }
+                        if (!useEp) useEp = 1;
                         // 付费/锁定集：class（ep locked）或文本（2 金币 / 48金币 / 解锁）命中即标记
-                        const locked = !!lockExp && (lockExp.test(links[i].className || '') || lockExp.test(epText));
-                        epList.push({ep: useEp, href: href, locked: locked});
+                        const cls = String(links[i].className || '');
+                        const locked = !!lockExp && (lockExp.test(cls) || lockExp.test(epText));
+                        // 同一集号可能同时命中「下一集 ›」按钮和真正的选集节点：优先保留带 ep 类的那个
+                        const pr = /(^|\s)ep(\s|$)/.test(cls) ? 0 : 1;
+                        if (seenIdx[useEp] !== undefined) {
+                            const at = seenIdx[useEp];
+                            if (pr < epList[at]._pr) epList[at] = { ep: useEp, href: href, locked: locked, _pr: pr };
+                            continue;
+                        }
+                        seenIdx[useEp] = epList.length;
+                        epList.push({ ep: useEp, href: href, locked: locked, _pr: pr });
                     }
                     epList.sort(function(a,b){ return a.ep - b.ep; });
+                    epList.forEach(function(o){ delete o._pr; });
                 } catch(e){ epList = null; }
             }
             // 总集数：优先从「选集 全N集」按钮文本提取（比收集折叠的选集网格更稳）
@@ -582,7 +609,7 @@
 
         totalEp = totalEp || (epList ? epList.length : 0) || currentEp;
         const title = r.title || docTitleClean();
-        const dramaName = (r.dramaName || title || '').replace(/\s*第\d+集\s*$/, '');
+        const dramaName = (r.dramaName || title || '').replace(/\s*第\s*\d+\s*集\s*$/, '');
         let cover = r.cover || '';
         if (cover && !/^https?:/.test(cover)) cover = location.origin + cover;
         return {
@@ -772,7 +799,9 @@
         e.stopPropagation();
         const nameEl = site.card.titleSel ? card.querySelector(site.card.titleSel) : null;
         const cardText = (card.textContent || '').replace(/\s+/g, ' ').trim();
-        const name = nameEl ? nameEl.textContent.trim().slice(0, 12) : cardText.slice(0, 12);
+        const cardAttr = card.getAttribute && card.getAttribute('title');
+        const name = nameEl ? nameEl.textContent.trim().slice(0, 12)
+                           : (cardText || cardAttr || '').slice(0, 12);
         toast(name ? ('正在打开《' + name + '》…') : '正在打开播放器…');
 
         if (site.play.mode === 'live') {

@@ -17,10 +17,16 @@ jobs:
         run: npm i puppeteer@23 --no-audit --no-fund
       - name: Capture rendered DOM
         run: node tools/mama-capture.js
-      - name: Commit results
+      - name: Keep rendered HTML as artifact only
+        uses: actions/upload-artifact@v4
+        with:
+          name: mama-html
+          path: capture/out/*.html
+          retention-days: 3
+      - name: Commit probe JSON only
         run: |
           git config user.name "capture-bot"
           git config user.email "capture-bot@users.noreply.github.com"
-          git add capture/out
+          git add capture/out/*.json
           git commit -m "capture: mamaduanju $(date -u +%Y%m%dT%H%M%SZ)" || echo "no changes"
           git push
