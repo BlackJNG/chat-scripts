@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         短剧干净播放器V5.0
 // @namespace    http://tampermonkey.net/
-// @version      8.7.1
+// @version      8.7.2
 // @description  干净播放器（多站点可配置模板）：卡片直达开播 + 追剧库 + 站点配置切换/编辑。原站为默认配置，新站用 live 模式读 blob 播放；v8.7 关闭面板归还视频元素；新增妈妈短剧（mamaduanju.com）：按 .vslot 槽位取在播源、金币集灰显跳过、真实选择器校正。
 // @author       You
 // @match        *://*/*
@@ -14,7 +14,7 @@
 (function() {
     'use strict';
 
-    const SCRIPT_VERSION = '8.7.1';
+    const SCRIPT_VERSION = '8.7.2';
     const TRACK_KEY = 'sdTrackData_v1';   // 沿用旧版追剧数据，升级不丢
     const SITES_KEY = 'sdSitesV8';        // 用户编辑后的站点配置（覆盖内置）
     const ACTIVE_KEY = 'sdActiveSite';    // 当前激活站点 id
@@ -217,8 +217,9 @@
 #sdPlayerBox{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
 .sd-player-wrap .dplayer{width:100%!important;height:100%!important;}
 /* 站点自己的 .vslot 是 position:absolute + inset:0，搬进面板后会被压成 0 高，必须强制还原成普通流 */
-.sd-player-wrap video,#sdPlayerBox video{
-    width:100%!important;height:100%!important;background:#000;display:block;
+.sd-player-wrap video{width:100%!important;height:100%!important;background:#000;display:block;}
+/* 只针对「从站点搬进来的 <video>」：站点 .vslot 的 absolute/inset:0 在面板里会把它压成 0 高 */
+#sdPlayerBox video.sd-live-video{
     position:static!important;inset:auto!important;transform:none!important;
     opacity:1!important;visibility:visible!important;
     object-fit:contain!important;max-width:100%!important;max-height:100%!important;z-index:0!important;
@@ -1097,6 +1098,7 @@
             // 记住原位置，关闭面板时归还，避免站点自己的播放器被搬空
             liveMove = { el: v, parent: v.parentElement, next: v.nextSibling, hiddenParent: v.parentElement };
             if (v.parentElement) v.parentElement.style.display = 'none';
+            v.classList.add('sd-live-video');     // 只给搬进来的站点视频加，DPlayer 不受影响
             v.controls = false; v.autoplay = true;
             v.muted = true;                       // 不静音的话移动端 play() 直接被拦，MSE 视频会停在黑屏
             v.setAttribute('playsinline', '');
@@ -1228,6 +1230,7 @@
             if (liveMove && liveMove.el && liveMove.parent){
                 const v = liveMove.el;
                 v.style.width = ''; v.style.height = ''; v.style.background = '';
+                v.classList.remove('sd-live-video');
                 v.controls = true;
                 if (liveMove.next && liveMove.next.parentNode === liveMove.parent) liveMove.parent.insertBefore(v, liveMove.next);
                 else liveMove.parent.appendChild(v);
