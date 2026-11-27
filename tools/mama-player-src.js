@@ -9,7 +9,7 @@ const BASE = 'https://mamaduanju.com';
 const SLUG = process.env.MAMA_SLUG || 'ren-yi-men';
 
 const KEYS = [
-  'vslot', 'big-play', 'landscape-full', 'theater-speed', 'm-progress', 'clear_enter',
+  'vslot', 'big-play', 'landscape-full', 'theater-speed', 'm-progress', 'clear_enter', 'playbackRate', '倍速', '清屏',
   'requestFullscreen', 'exitFullscreen', 'orientation', 'screen.lock', 'webkitEnterFullscreen',
   'MediaSource', 'addSourceBuffer', 'm3u8', 'Hls', 'isTypeSupported',
   'pointerdown', 'pointermove', 'swipe', 'passive', 'playsinline',
@@ -45,7 +45,13 @@ const grab = (text, kw) => {
 
   const info = await page.evaluate(() => ({
     feedCls: (document.querySelector('.feed') || {}).className || '',
-    scripts: Array.prototype.slice.call(document.querySelectorAll('script[src]')).map(s => s.src),
+    scripts: (() => {
+      const set = new Set(Array.prototype.slice.call(document.querySelectorAll('script[src]')).map(s => s.src));
+      performance.getEntriesByType('resource').forEach(e => {
+        if (/\.js(?:\?|\.js$)/.test(e.name) && e.initiatorType !== 'link') set.add(e.name);
+      });
+      return Array.from(set);
+    })(),
     inlineCount: document.querySelectorAll('script:not([src])').length,
     videos: Array.prototype.slice.call(document.querySelectorAll('video')).map(v => ({
       cls: v.className, src: String(v.src || '').slice(0, 14),
