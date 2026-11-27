@@ -19,11 +19,14 @@ jobs:
         run: |
           node tools/mama-capture.js || echo 'mama-capture failed'
           node tools/mama-theater.js || echo 'mama-theater failed'
+          node tools/mama-player-src.js || echo 'player-src failed'
       - name: Keep rendered HTML as artifact only
         uses: actions/upload-artifact@v4
         with:
           name: mama-html
-          path: capture/out/*.html
+          path: |
+            capture/out/*.html
+            capture/out/src/*.js
           retention-days: 3
       - name: Commit probe JSON only
         run: |
