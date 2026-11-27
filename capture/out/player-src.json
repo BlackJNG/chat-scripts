@@ -1,5 +1,5 @@
 {
- "at": "2026-11-27T17:56:07.829Z",
+ "at": "2026-11-27T17:58:42.539Z",
  "slug": "ren-yi-men",
  "feedCls": "feed mobile theater-series short-mobile-layout with-episode-footer",
  "scripts": [
@@ -8,6 +8,9 @@
    "name": "BYHtZ9fg.js",
    "bytes": 494963,
    "matches": {
+    "playbackRate": [
+     "d 0,payload:{segment_id:e.segmentId,segment_kind:e.segmentKind,position_start_ms:e.positionStartMs,...e.positionEndMs!==void 0?{position_end_ms:e.positionEndMs}:{},playback_rate:e.playbackRate??1,...e.endReason?{end_reason:e.endReason}:{}}})}function zA(e){const t=ze();Ue({event_name:\"pa_trial_end\",scene:e.scene,source_context:e.sourceContext,visit_id:t,trial_id:e.trialId,playback_id:e.playbackId,"
+    ],
     "m3u8": [
      "rn I.forEach(function(U){T.set(U,O),O+=U.byteLength}),T}async function h(g,v,m){var y=e.get(g),w;try{w=i(v)}catch{return!1}var I=new URL(w).pathname.toLowerCase();if(!I.endsWith(\".m3u8\")&&!I.includes(\"/api/hls/\")||!y||y.scope!==t||y.pending||navigator.connection&&navigator.connection.saveData)return!1;if(a(y,y.entries.get(w)))return!0;var k=new AbortController;y.pending=k;var M=setTimeout(function"
     ],
