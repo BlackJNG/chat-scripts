@@ -1,7 +1,7 @@
 {
  "url": "https://mamaduanju.com/",
  "title": "MaMa短剧 - 热门短剧在线观看",
- "totalDramaLinks": 67,
+ "totalDramaLinks": 65,
  "pureDramaLinks": 59,
  "topCls": [
   [
@@ -17,7 +17,19 @@
    48
   ],
   [
+   "stretch",
+   48
+  ],
+  [
    "home-card-badges",
+   48
+  ],
+  [
+   "configured-badge",
+   48
+  ],
+  [
+   "badge-type",
    48
   ],
   [
@@ -33,24 +45,16 @@
    48
   ],
   [
-   "configured-badge",
-   47
-  ],
-  [
-   "badge-type",
-   47
-  ],
-  [
    "blue",
    43
   ],
   [
    "label-art",
-   33
+   34
   ],
   [
    "badge-readable",
-   33
+   34
   ],
   [
    "short",
@@ -109,14 +113,6 @@
    10
   ],
   [
-   "home-hero-slide",
-   8
-  ],
-  [
-   "home-hero-image",
-   8
-  ],
-  [
    "zone-tab",
    8
   ],
@@ -126,6 +122,14 @@
   ],
   [
    "on",
+   6
+  ],
+  [
+   "home-hero-slide",
+   6
+  ],
+  [
+   "home-hero-image",
    6
   ],
   [
@@ -158,10 +162,6 @@
   ],
   [
    "ad78-only-app",
-   4
-  ],
-  [
-   "theater-ad-cover",
    4
   ]
  ],
@@ -209,64 +209,64 @@
    "grandCls": "home-mobile-hero hero-on"
   },
   {
-   "href": "/drama/xia-ye-hou-fu/ep-1",
-   "cls": "home-hero-slide",
-   "text": "",
-   "parentCls": "home-hero-track",
-   "grandCls": "home-mobile-hero hero-on"
-  },
-  {
-   "href": "/drama/pao-you-bang-wo-lai-zhua-jian/ep-1",
-   "cls": "home-hero-slide",
-   "text": "",
-   "parentCls": "home-hero-track",
-   "grandCls": "home-mobile-hero hero-on"
-  },
-  {
-   "href": "/drama/bai-she-yin-qi",
+   "href": "/drama/hun-chuan-lao-tou-xing-ai-xu-ming-zheng-pian",
    "cls": "hero",
-   "text": "精选推荐更新至 7 集白蛇淫起全网原创 · 连载中 · 热度",
+   "text": "精选推荐全 30 集魂穿老头，性爱续命都市情欲 · 已完结 ",
    "parentCls": "rank-area hide-m",
    "grandCls": "theater home-ui"
   },
   {
    "href": "/drama/hu-lu-mei-jiu-nai-nai-di-er-ji",
    "cls": "rk-row",
-   "text": "1葫芦妹救奶奶第二季仙侠玄幻 · 热度 23.3万",
+   "text": "1葫芦妹救奶奶第二季仙侠玄幻 · 热度 23.9万",
    "parentCls": "rk-list",
    "grandCls": "rk"
   },
   {
    "href": "/drama/jue-xing-gui-lai-kai-ju-fei-le-e-ba",
    "cls": "rk-row",
-   "text": "2觉醒归来，开局废了恶霸系统逆袭 · 热度 21.7万",
+   "text": "2觉醒归来，开局废了恶霸系统逆袭 · 热度 21.8万",
    "parentCls": "rk-list",
    "grandCls": "rk"
   },
   {
    "href": "/drama/xia-ye-hou-fu",
    "cls": "rk-row",
-   "text": "3夏夜侯府仙侠玄幻 · 热度 14.1万",
+   "text": "3夏夜侯府仙侠玄幻 · 热度 14.5万",
    "parentCls": "rk-list",
    "grandCls": "rk"
   },
   {
    "href": "/drama/lie-wang-zhong-sheng-lao-po-hai-zi-re-kang-tou",
    "cls": "rk-row",
-   "text": "4猎王重生：老婆孩子热炕头乡村野趣 · 热度 12.4万",
+   "text": "4猎王重生：老婆孩子热炕头乡村野趣 · 热度 12.6万",
    "parentCls": "rk-list",
    "grandCls": "rk"
   },
   {
    "href": "/drama/nv-you-bang-wo-cao-gui-mi",
    "cls": "rk-row",
-   "text": "5女友帮我操闺蜜都市恋爱 · 热度 11.7万",
+   "text": "5女友帮我操闺蜜都市恋爱 · 热度 12.2万",
+   "parentCls": "rk-list",
+   "grandCls": "rk"
+  },
+  {
+   "href": "/drama/pao-you-bang-wo-lai-zhua-jian",
+   "cls": "rk-row",
+   "text": "6炮友帮我来抓奸都市恋爱 · 热度 11.9万",
+   "parentCls": "rk-list",
+   "grandCls": "rk"
+  },
+  {
+   "href": "/drama/zhong-sheng-ba-ling-bai-tian-gan-hai-ye-li-qian-qi-lai-qiao-men",
+   "cls": "rk-row",
+   "text": "7重生八零：白天赶海，夜里前妻来敲门乡村野趣 · 热度 11",
    "parentCls": "rk-list",
    "grandCls": "rk"
   }
  ],
- "firstPureOuter": "<a href=\"/drama/bai-she-yin-qi\" class=\"hero\" style=\"\" data-v-c09e057c=\"\"><div class=\"hero-bg\" data-v-c09e057c=\"\"></div><div class=\"hero-fade\" data-v-c09e057c=\"\"></div><div class=\"hero-blob\" data-v-c09e057c=\"\"></div><!----><span class=\"hero-poster\" data-v-c09e057c=\"\"><picture data-v-c09e057c=\"\" style=\"display: contents;\"><source media=\"(min-width: 900px)\" srcset=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7\"><img draggable=\"false\" width=\"222\" height=\"296\" src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7\" alt=\"白蛇淫起\" loading=\"eager\" fetchpriority=\"high\" decoding=\"async\"></picture></span><div class=\"hero-body\" data-v-c09e057c=\"",
- "firstPureParentOuter": "<div class=\"theater home-ui\" data-v-c09e057c=\"\"><!--[--><!--]--><section class=\"home-mobile-hero hero-on\" data-v-c09e057c=\"\" data-v-9b63c7ed=\"\"><!--[--><div class=\"home-hero-track\" data-v-9b63c7ed=\"\"><!--[--><!--[--><a href=\"/drama/cao-yao-ji/ep-1\" class=\"home-hero-slide\" aria-label=\"播放操妖纪\" data-v-9b63c7ed=\"\"><picture style=\"display:contents;\" data-v-9b63c7ed=\"\"><source media=\"(max-width: 899px)\" srcset=\"blob:https://mamaduanju.com/1238072e-772f-46c3-a172-1f5d52e14e2d\"><img draggable=\"false\" class=\"home-hero-image\" style=\"\" src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7\" alt=\"操妖纪\" loading=\"eager\" fetchpriority=\"low\" decoding=\"async\"></picture></a><!--]--><!--[--><a href=\"/drama/hun-chuan-lao-tou-xing-ai-xu-ming-zheng-pian/ep-1\" class=\"home-hero-slide\" aria-label=\"播放魂穿老头，性爱续命\" data-v-9b63c7ed=\"\"><picture style=\"display:contents;\" data-v-9b63c7ed=\"\"><source media=\"(max-width: 899px)\" srcset=\"blob:https://mamaduanju.com/d472970a-8cb8-4a03-93ff-740d70db62ef\"><img draggable=\"false\" class=\"home-hero-image\" style=\"\" src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7\" alt=\"魂穿老头，性爱续命\" loading=\"eager\" fetchpriority=\"high\" ",
+ "firstPureOuter": "<a href=\"/drama/hun-chuan-lao-tou-xing-ai-xu-ming-zheng-pian\" class=\"hero\" style=\"\" data-v-c09e057c=\"\"><div class=\"hero-bg\" data-v-c09e057c=\"\"></div><div class=\"hero-fade\" data-v-c09e057c=\"\"></div><div class=\"hero-blob\" data-v-c09e057c=\"\"></div><!----><span class=\"hero-poster\" data-v-c09e057c=\"\"><picture data-v-c09e057c=\"\" style=\"display: contents;\"><source media=\"(min-width: 900px)\" srcset=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7\"><img draggable=\"false\" width=\"222\" height=\"296\" src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7\" alt=\"魂穿老头，性爱续命\" loading=\"eager\" fetchpriority=\"high\" decoding=\"async\"></picture></span><div ",
+ "firstPureParentOuter": "<div class=\"theater home-ui\" data-cover-ratio=\"3:4\" data-v-c09e057c=\"\"><!--[--><!--]--><section class=\"home-mobile-hero hero-on\" data-v-c09e057c=\"\" data-v-9b63c7ed=\"\"><!--[--><div class=\"home-hero-track\" data-v-9b63c7ed=\"\"><!--[--><!--[--><a href=\"/drama/cao-yao-ji/ep-1\" class=\"home-hero-slide\" aria-label=\"播放操妖纪\" data-v-9b63c7ed=\"\"><picture style=\"display:contents;\" data-v-9b63c7ed=\"\"><source media=\"(max-width: 899px)\" srcset=\"blob:https://mamaduanju.com/c5040ebd-9e1e-4c11-8e0a-2f66593a65d3\"><img draggable=\"false\" class=\"home-hero-image\" style=\"\" src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7\" alt=\"操妖纪\" loading=\"eager\" fetchpriority=\"high\" decoding=\"async\"></picture></a><!--]--><!--[--><a href=\"/drama/hun-chuan-lao-tou-xing-ai-xu-ming-zheng-pian/ep-1\" class=\"home-hero-slide\" aria-label=\"播放魂穿老头，性爱续命\" data-v-9b63c7ed=\"\"><picture style=\"display:contents;\" data-v-9b63c7ed=\"\"><source media=\"(max-width: 899px)\" srcset=\"blob:https://mamaduanju.com/58d13d31-a716-4454-b679-dd7afb306023\"><img draggable=\"false\" class=\"home-hero-image\" style=\"\" src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7\" alt=\"魂穿老头，性爱续命\" loading=\"eage",
  "hasPagerText": [
   "全11集",
   "全6集",

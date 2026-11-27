@@ -1,0 +1,64 @@
+{
+ "at": "2026-11-27T17:46:07.496Z",
+ "log": [
+  {
+   "step": "detail-entries",
+   "slug": "ren-yi-men",
+   "entries": [
+    {
+     "tag": "A",
+     "text": "剧场",
+     "href": "/theater",
+     "cls": "item"
+    },
+    {
+     "tag": "A",
+     "text": "",
+     "href": "/theater",
+     "cls": ""
+    },
+    {
+     "tag": "A",
+     "text": "",
+     "href": "/settings/feedback",
+     "cls": ""
+    },
+    {
+     "tag": "A",
+     "text": "第 1 集 立即播放",
+     "href": "/drama/ren-yi-men/ep-1",
+     "cls": "hbtn play"
+    },
+    {
+     "tag": "BUTTON",
+     "text": "稍后再看",
+     "href": "",
+     "cls": "hbtn ghost"
+    },
+    {
+     "tag": "BUTTON",
+     "text": "查看更多评论",
+     "href": "",
+     "cls": "comment-more"
+    },
+    {
+     "tag": "A",
+     "text": "立即播放",
+     "href": "/drama/ren-yi-men/ep-1",
+     "cls": "detail-continue"
+    }
+   ]
+  },
+  {
+   "step": "clicked",
+   "before": "https://mamaduanju.com/drama/ren-yi-men",
+   "after": "https://mamaduanju.com/drama/ren-yi-men"
+  },
+  {
+   "step": "captured",
+   "url": "https://mamaduanju.com/drama/ren-yi-men",
+   "cls": "",
+   "videos": 0
+  }
+ ]
+}
