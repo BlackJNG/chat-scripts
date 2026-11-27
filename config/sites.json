@@ -1,0 +1,74 @@
+[
+  {
+    "id": "xingyuan",
+    "name": "星缘",
+    "badge": "星",
+    "color": "#E8574A",
+    "home": "https://www.starfate.vip/chat-list",
+    "script": "scripts/xingyuan.js",
+    "scriptUrl": "https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E6%98%9F%E7%BC%98%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js",
+    "hosts": ["www.starfate.vip", "starfate.vip"],
+    "enabled": true,
+    "builtin": true
+  },
+  {
+    "id": "yuanqi",
+    "name": "缘起",
+    "badge": "缘",
+    "color": "#7C5BFF",
+    "home": "https://www.nmliao.cc/chat",
+    "script": "scripts/yuanqi.js",
+    "scriptUrl": "https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E7%BC%98%E8%B5%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js",
+    "hosts": ["www.nmliao.cc", "nmliao.cc"],
+    "enabled": true,
+    "builtin": true
+  },
+  {
+    "id": "qiaoqiao",
+    "name": "巧巧",
+    "badge": "巧",
+    "color": "#2FA87B",
+    "home": "https://www.qiaoqiao.chat/",
+    "script": "scripts/qiaoqiao.js",
+    "scriptUrl": "https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%B7%A7%E5%B7%A7%E8%BF%B7%E8%BF%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js",
+    "hosts": ["www.qiaoqiao.chat", "qiaoqiao.chat"],
+    "enabled": true,
+    "builtin": true
+  },
+  {
+    "id": "mimiu",
+    "name": "迷迷",
+    "badge": "迷",
+    "color": "#1FB5A6",
+    "home": "https://www.mimiu.chat/",
+    "script": "scripts/qiaoqiao.js",
+    "scriptUrl": "https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%B7%A7%E5%B7%A7%E8%BF%B7%E8%BF%B7%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js",
+    "hosts": ["www.mimiu.chat", "mimiu.chat"],
+    "enabled": true,
+    "builtin": true
+  },
+  {
+    "id": "shushu",
+    "name": "叔叔",
+    "badge": "叔",
+    "color": "#D98324",
+    "home": "https://www.shushubuyue.net/index.html#/chat",
+    "script": "scripts/shushu.js",
+    "scriptUrl": "https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/%E5%8F%94%E5%8F%94%E4%B8%8D%E7%BA%A6%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js",
+    "hosts": ["www.shushubuyue.net", "shushubuyue.net", "www.shushubuyue.com", "shushubuyue.com"],
+    "enabled": true,
+    "builtin": true
+  },
+  {
+    "id": "nvda",
+    "name": "NVDA",
+    "badge": "N",
+    "color": "#3D8BFD",
+    "home": "https://nvda.chat/",
+    "script": "scripts/nvda.js",
+    "scriptUrl": "https://gh-proxy.org/https://raw.githubusercontent.com/BlackJNG/chat-scripts/main/scripts/nvda%E6%89%98%E7%AE%A1%E5%8A%A9%E6%89%8B.user.js",
+    "hosts": ["nvda.chat", "www.nvda.chat"],
+    "enabled": true,
+    "builtin": true
+  }
+]
