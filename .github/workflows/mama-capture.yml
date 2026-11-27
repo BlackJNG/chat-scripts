@@ -21,6 +21,7 @@ jobs:
           node tools/mama-theater.js || echo 'mama-theater failed'
           node tools/mama-player-src.js || echo 'player-src failed'
           node tools/mama-player-chunks.js || echo 'player-chunks failed'
+          node tools/yeguo-capture.js || echo 'yeguo failed'
       - name: Keep rendered HTML as artifact only
         uses: actions/upload-artifact@v4
         with:
@@ -29,6 +30,7 @@ jobs:
             capture/out/*.html
             capture/out/src/*.js
             capture/out/src2/*.js
+            capture/out/yeguo-*.html
           retention-days: 3
       - name: Commit probe JSON only
         run: |
