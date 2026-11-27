@@ -16,7 +16,9 @@ jobs:
       - name: Install puppeteer
         run: npm i puppeteer@23 --no-audit --no-fund
       - name: Capture rendered DOM
-        run: node tools/mama-capture.js
+        run: |
+          node tools/mama-capture.js || echo 'mama-capture failed'
+          node tools/mama-theater.js || echo 'mama-theater failed'
       - name: Keep rendered HTML as artifact only
         uses: actions/upload-artifact@v4
         with:
