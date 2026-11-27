@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         短剧干净播放器V5.0
 // @namespace    http://tampermonkey.net/
-// @version      8.7
+// @version      8.7.1
 // @description  干净播放器（多站点可配置模板）：卡片直达开播 + 追剧库 + 站点配置切换/编辑。原站为默认配置，新站用 live 模式读 blob 播放；v8.7 关闭面板归还视频元素；新增妈妈短剧（mamaduanju.com）：按 .vslot 槽位取在播源、金币集灰显跳过、真实选择器校正。
 // @author       You
 // @match        *://*/*
@@ -14,7 +14,7 @@
 (function() {
     'use strict';
 
-    const SCRIPT_VERSION = '8.7';
+    const SCRIPT_VERSION = '8.7.1';
     const TRACK_KEY = 'sdTrackData_v1';   // 沿用旧版追剧数据，升级不丢
     const SITES_KEY = 'sdSitesV8';        // 用户编辑后的站点配置（覆盖内置）
     const ACTIVE_KEY = 'sdActiveSite';    // 当前激活站点 id
@@ -210,9 +210,26 @@
     cursor:pointer;font-size:13px;white-space:nowrap;
 }
 .sd-content{flex:1;overflow-y:auto;}
-.sd-player-wrap{width:100%;background:#000;position:relative;}
-.sd-player-wrap .dplayer{width:100%!important;}
-.sd-player-wrap video{width:100%!important;height:100%!important;background:#000;display:block;}
+.sd-player-wrap{
+    width:100%;background:#000;position:relative;height:56vh;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+#sdPlayerBox{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+.sd-player-wrap .dplayer{width:100%!important;height:100%!important;}
+/* 站点自己的 .vslot 是 position:absolute + inset:0，搬进面板后会被压成 0 高，必须强制还原成普通流 */
+.sd-player-wrap video,#sdPlayerBox video{
+    width:100%!important;height:100%!important;background:#000;display:block;
+    position:static!important;inset:auto!important;transform:none!important;
+    opacity:1!important;visibility:visible!important;
+    object-fit:contain!important;max-width:100%!important;max-height:100%!important;z-index:0!important;
+}
+/* 自动播放被浏览器拦下时的兜底大播放键 */
+.sd-tap{
+    position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.35);color:#fff;font-size:15px;z-index:6;cursor:pointer;
+    text-align:center;line-height:1.8;
+}
+.sd-tap.show{display:flex;}
 .sd-loading{
     color:#888;text-align:center;display:flex;align-items:center;justify-content:center;
     min-height:200px;font-size:14px;
@@ -907,6 +924,7 @@
     <div class="sd-player-wrap">
         <div class="sd-loading" id="sdLoading">加载中...</div>
         <div id="sdPlayerBox"></div>
+        <div class="sd-tap" id="sdTapPlay">▶ 点击播放</div>
     </div>
     <div class="sd-toolbar">
         <button class="sd-tool-btn" id="sdPrevEp">上一集</button>
@@ -928,6 +946,11 @@
     </div>
 </div>`;
     document.body.appendChild(panel);
+
+    // 站点常在 document 上挂 capture 的 touch 监听并 preventDefault，会把面板里的点击吃掉
+    ['touchstart','touchmove','touchend'].forEach(function(ev){
+        panel.addEventListener(ev, function(e){ e.stopPropagation(); }, {capture:true, passive:true});
+    });
 
     // ===== 追剧库面板 =====
     const trackPanel = document.createElement('div');
@@ -1029,6 +1052,36 @@
         updateFollowUI();
     }
 
+    // 自动播放兜底：静音先播，失败就让用户点一下（点了才解除静音，符合浏览器策略）
+    let tapVideo = null;
+    function showTapPlay(on){
+        const t = document.getElementById('sdTapPlay');
+        if (!t) return;
+        if (on) t.classList.add('show'); else t.classList.remove('show');
+    }
+    function bindTapPlay(v){
+        tapVideo = v;
+        try { v.removeEventListener('play', onVPlay); v.removeEventListener('pause', onVPause); } catch(e){}
+        v.addEventListener('play', onVPlay);
+        v.addEventListener('pause', onVPause);
+        v.addEventListener('canplay', onVPlay);
+        showTapPlay(false);
+    }
+    function onVPlay(){ showTapPlay(false); }
+    function onVPause(){ if (!tapVideo || tapVideo !== this) return; if (this.ended) return; showTapPlay(true); }
+    function tapToPlay(){
+        const v = tapVideo;
+        if (!v) return;
+        try { v.muted = false; } catch(e){}
+        const p = v.play && v.play();
+        if (p && p.catch) p.catch(function(){});
+        showTapPlay(false);
+    }
+    setTimeout(function(){
+        const t = document.getElementById('sdTapPlay');
+        if (t) t.onclick = tapToPlay;
+    }, 0);
+
     // live 模式：blob 同页播放（MediaSource 的 blob 不能挂两个 video，故直接搬原 <video> 最稳）
     let liveMove = null;   // 被搬进面板的视频及其原位置，关闭时归还
     function playLiveVideo(blobUrl){
@@ -1045,13 +1098,15 @@
             liveMove = { el: v, parent: v.parentElement, next: v.nextSibling, hiddenParent: v.parentElement };
             if (v.parentElement) v.parentElement.style.display = 'none';
             v.controls = false; v.autoplay = true;
+            v.muted = true;                       // 不静音的话移动端 play() 直接被拦，MSE 视频会停在黑屏
             v.setAttribute('playsinline', '');
             v.setAttribute('webkit-playsinline', '');
             v.setAttribute('x5-playsinline', '');
             v.setAttribute('x5-video-player-type', 'h5');
             v.style.width = '100%'; v.style.height = '100%'; v.style.background = '#000';
             box.appendChild(v);
-            v.play && v.play().catch(function(){});
+            bindTapPlay(v);
+            v.play && v.play().catch(function(){ showTapPlay(true); });
         } else {
             // 非 blob 兜底：自建 video
             const nv = document.createElement('video');
@@ -1061,9 +1116,11 @@
             nv.setAttribute('webkit-playsinline', '');
             nv.setAttribute('x5-playsinline', '');
             nv.setAttribute('x5-video-player-type', 'h5');
+            nv.muted = true;
             nv.style.width = '100%'; nv.style.height = '100%'; nv.style.background = '#000';
             box.appendChild(nv);
-            nv.play && nv.play().catch(function(){});
+            bindTapPlay(nv);
+            nv.play && nv.play().catch(function(){ showTapPlay(true); });
         }
         recordWatch();
         updateFollowUI();
@@ -1186,6 +1243,8 @@
         if (panel.style.display === 'flex' && current &&
             current.videoId === cur.videoId && current.currentEp === cur.currentEp) return;
         current = cur;
+        // 站点会用 Vue Teleport 往 body 后面追加浮层（同 z-index 时后来者在上），面板每次打开都重新挂到 body 末尾
+        try { if (panel.parentNode !== document.body || panel.nextSibling) document.body.appendChild(panel); } catch(e){}
         panel.style.display = 'flex';
         document.getElementById('sdDramaName').textContent = cur.dramaName || '加载中...';
         document.getElementById('sdDescText').textContent = cur.desc || '暂无简介';
