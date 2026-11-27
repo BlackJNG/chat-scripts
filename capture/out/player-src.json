@@ -1,0 +1,70 @@
+{
+ "at": "2026-11-27T17:56:07.829Z",
+ "slug": "ren-yi-men",
+ "feedCls": "feed mobile theater-series short-mobile-layout with-episode-footer",
+ "scripts": [
+  {
+   "url": "https://mamaduanju.com/_nuxt/BYHtZ9fg.js",
+   "name": "BYHtZ9fg.js",
+   "bytes": 494963,
+   "matches": {
+    "m3u8": [
+     "rn I.forEach(function(U){T.set(U,O),O+=U.byteLength}),T}async function h(g,v,m){var y=e.get(g),w;try{w=i(v)}catch{return!1}var I=new URL(w).pathname.toLowerCase();if(!I.endsWith(\".m3u8\")&&!I.includes(\"/api/hls/\")||!y||y.scope!==t||y.pending||navigator.connection&&navigator.connection.saveData)return!1;if(a(y,y.entries.get(w)))return!0;var k=new AbortController;y.pending=k;var M=setTimeout(function"
+    ],
+    "Hls": [
+     "mUUID?.()}catch{return}}function tS(e){if(typeof e!=\"string\")return{};const t=/\\bname=(Error|AbortError|InvalidStateError|NotSupportedError|QuotaExceededError|TypeError|RangeError|HlsJsTrackRemovedError)\\b/.exec(e)?.[1],n=/^(networkError|mediaError|muxError|otherError)-(manifestLoadError|manifestLoadTimeOut|manifestParsingError|levelLoadError|levelLoadTimeOut|fragLoadError|fragLoadTimeOut|fragPars",
+     "titleTrackLoadError\",\"subtitleTrackLoadTimeOut\",\"unknown\"]),V5=new Set([\"Error\",\"AbortError\",\"InvalidStateError\",\"NotSupportedError\",\"QuotaExceededError\",\"TypeError\",\"RangeError\",\"HlsJsTrackRemovedError\",\"DataCloneError\",\"OperationError\"]),D5=/^(?:avc[1-4](?:\\.[a-f0-9]{6})?|(?:hvc1|hev1)(?:\\.[abc]?\\d{1,3}\\.[a-f0-9]{1,8}\\.[lh]\\d{1,3}(?:\\.[a-f0-9]{1,2}){0,6})?|mp4a(?:\\.[a-f0-9]{2}(?:\\.\\d{1,3})?)?|vp"
+    ],
+    "passive": [
+     ".afterEach(l),d=He(()=>n.token,l),c=_=>{try{t.onClick(_)}catch{}},f=()=>Sl(!0),h=()=>{document.visibilityState===\"hidden\"&&f()};document.addEventListener(\"pointerup\",c,{capture:!0,passive:!0}),document.addEventListener(\"visibilitychange\",h),window.addEventListener(\"pagehide\",f);const p=()=>{o?.(),u(),d(),f(),document.removeEventListener(\"pointerup\",c,!0),document.removeEventListener(\"visibilitycha",
+     "!v.isIntersecting?0:d0(v.boundingClientRect,Lr(v.intersectionRect,g.viewport),g.tab,g.notice),v.time))}},{threshold:[0,.25,.5,.75,1]});return document.addEventListener(\"scroll\",c,{passive:!0,capture:!0}),document.addEventListener(\"visibilitychange\",d),window.addEventListener(\"resize\",c),window.visualViewport?.addEventListener(\"resize\",c),window.visualViewport?.addEventListener(\"scroll\",c),{read:l,",
+     "value=0})}function D(j){v&&(v=!1,j.preventDefault(),j.stopPropagation())}function q(j){I()&&j.target===s.value&&j.preventDefault()}function $(j){j.addEventListener(\"touchstart\",U,{passive:!0}),j.addEventListener(\"touchmove\",H,{passive:!1}),j.addEventListener(\"touchend\",R),j.addEventListener(\"touchcancel\",R),j.addEventListener(\"click\",D,!0)}function z(j){j.removeEventListener(\"touchstart\",U),j.remo"
+    ],
+    "setup(": [
+     "Cancelled:Ht,onBeforeAppear:Ht,onAppear:Ht,onAfterAppear:Ht,onAppearCancelled:Ht},r1=e=>{const t=e.subTree;return t.component?r1(t.component):t},ag={name:\"BaseTransition\",props:n1,setup(e,{slots:t}){const n=wt(),r=ig();return()=>{const o=t.default&&i1(t.default(),!0),s=o&&o.length?o1(o):n.subTree?kt():void 0;if(!s)return;const i=ge(e),{mode:a}=i;if(r.isLeaving)return Oa(s);const l=Si(s);if(!l)retu",
+     "|!p.parentNode||g&&!p.isConnected||b()},y=s?()=>{const w=s(m,I=>vg(p,I));w&&(_.bum||(_.bum=[])).push(w)}:m;d?y():h().then(()=>!_.isUnmounted&&y())},get __asyncResolved(){return d},setup(){const p=lt;if(Fl(p),d)return()=>js(d,p);const _=w=>{u=null,Eo(w,p,13,!r)};if(a&&p.suspense||xr)return h().then(w=>()=>js(w,p)).catch(w=>(_(w),()=>r?ve(r,{error:w}):null));const b=we(!1),g=we(),v=we(!!o);let m,y;r",
+     ",delete t.vnode.ce,i}const Ts=e=>e.type.__isKeepAlive,bg={name:\"KeepAlive\",__isKeepAlive:!0,props:{include:[String,RegExp,Array],exclude:[String,RegExp,Array],max:[String,Number]},setup(e,{slots:t}){const n=wt(),r=n.ctx;if(!r.renderer)return()=>{const v=t.default&&t.default();return v&&v.length===1?v[0]:v};const o=new Map,s=new Set;let i=null;const a=n.suspense,{renderer:{p:l,m:u,um:d,o:{createEle"
+    ]
+   }
+  },
+  {
+   "url": "https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092",
+   "name": "vce701823e78c4301a35b7e07294d87301792088814092",
+   "bytes": 31853,
+   "matches": {}
+  }
+ ],
+ "videos": [
+  {
+   "cls": "vslot",
+   "src": "blob:https://m",
+   "hasMSE": true,
+   "buffered": [
+    null
+   ],
+   "duration": 548.566667,
+   "readyState": 4
+  },
+  {
+   "cls": "vslot off",
+   "src": "blob:https://m",
+   "hasMSE": true,
+   "buffered": [
+    null
+   ],
+   "duration": 15,
+   "readyState": 4
+  },
+  {
+   "cls": "vslot off",
+   "src": "blob:https://m",
+   "hasMSE": true,
+   "buffered": [
+    null
+   ],
+   "duration": 15,
+   "readyState": 4
+  }
+ ],
+ "inlineCount": 9
+}
