@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         短剧干净播放器V5.0
 // @namespace    http://tampermonkey.net/
-// @version      8.9
+// @version      8.10
 // @description  干净播放器（多站点可配置模板）：卡片直达开播 + 追剧库 + 站点配置切换/编辑。原站为默认配置，新站用 live 模式读 blob 播放；v8.7 关闭面板归还视频元素；新增妈妈短剧（mamaduanju.com）：按 .vslot 槽位取在播源、金币集灰显跳过、真实选择器校正。
 // @author       You
 // @match        *://*/*
@@ -14,7 +14,7 @@
 (function() {
     'use strict';
 
-    const SCRIPT_VERSION = '8.9';
+    const SCRIPT_VERSION = '8.10';
     const TRACK_KEY = 'sdTrackData_v1';   // 沿用旧版追剧数据，升级不丢
     const SITES_KEY = 'sdSitesV8';        // 用户编辑后的站点配置（覆盖内置）
     const ACTIVE_KEY = 'sdActiveSite';    // 当前激活站点 id
@@ -266,6 +266,13 @@
 }
 .sd-lp-badge.show{display:block;}
 .sd-player-wrap:fullscreen,.sd-player-wrap:-webkit-full-screen{width:100vw;height:100vh;background:#000;}
+/* 全屏：竖剧铺满整屏（cover，去掉上下黑边）；横剧按原比例（contain，不裁人脸） */
+.sd-player-wrap:fullscreen,.sd-player-wrap:-webkit-full-screen{display:flex;align-items:center;justify-content:center;}
+.sd-player-wrap.sd-fs-fill #sdPlayerBox,.sd-player-wrap.sd-fs-fill #sdPlayerBox video.sd-live-video{
+    width:100%!important;height:100%!important;
+}
+.sd-player-wrap.sd-fs-fill #sdPlayerBox video.sd-live-video{object-fit:cover!important;}
+.sd-player-wrap.sd-fs-contain #sdPlayerBox video.sd-live-video{object-fit:contain!important;}
 .sd-loading{
     color:#888;text-align:center;display:flex;align-items:center;justify-content:center;
     min-height:200px;font-size:14px;
@@ -1285,6 +1292,20 @@
             showCtrl();
         });
 
+        function applyFsFit(w, vid, land){
+            if (!w || !w.classList) return;
+            w.classList.remove('sd-fs-fill', 'sd-fs-contain');
+            // 竖剧 + 竖屏窗口 → 铺满去黑边；竖剧但屏幕被转成横的 → 改回等比，避免裁掉半张脸
+            const vw = (vid && vid.videoWidth) || 0, vh = (vid && vid.videoHeight) || 0;
+            const sw = window.innerWidth || 0, sh = window.innerHeight || 0;
+            const portraitVideo = vh > vw;
+            const portraitScreen = sh >= sw;
+            if (portraitVideo && portraitScreen) w.classList.add('sd-fs-fill');
+            else w.classList.add('sd-fs-contain');
+        }
+        function clearFsFit(){
+            try { wrap.classList.remove('sd-fs-fill', 'sd-fs-contain'); } catch(e){}
+        }
         function inFullscreen(){
             return document.fullscreenElement === wrap || v.webkitDisplayingFullscreen === true;
         }
@@ -1297,6 +1318,7 @@
             }
             // 只有横向视频才锁定横屏；9:16 竖剧直接铺满屏幕（模仿妈妈短剧的效果）
             const wantLandscape = (v.videoWidth || 0) > (v.videoHeight || 0);
+            applyFsFit(wrap, v, wantLandscape);
             const lock = function(){
                 if (!wantLandscape) return;
                 try {
@@ -1309,7 +1331,7 @@
             try {
                 if (wrap.requestFullscreen) {
                     const p = wrap.requestFullscreen();
-                    if (p && p.then) p.then(lock, function(){ if (v.webkitEnterFullscreen) try{ v.webkitEnterFullscreen(); }catch(e){} });
+                    if (p && p.then) p.then(lock, function(){ clearFsFit(); if (v.webkitEnterFullscreen) try{ v.webkitEnterFullscreen(); }catch(e){} });
                     else lock();
                 } else if (v.webkitEnterFullscreen) { v.webkitEnterFullscreen(); }
                 else if (wrap.webkitRequestFullscreen) { wrap.webkitRequestFullscreen(); }
@@ -1317,7 +1339,15 @@
             } catch(e){ toast('暂时无法进入全屏'); }
         }
         on(btnFull, 'click', function(e){ e.stopPropagation(); toggleFull(); });
-        on(document, 'fullscreenchange', function(){ showCtrl(); });
+        on(document, 'fullscreenchange', function(){
+            if (!inFullscreen()) { clearFsFit(); showCtrl(); return; }
+            applyFsFit(wrap, v, false);
+            showCtrl();
+        });
+        // 全屏中旋转屏幕：重新判定铺满/等比（竖屏满了、转横后自动改等比）
+        on(window, 'resize', function(){
+            if (inFullscreen()) applyFsFit(wrap, v, false);
+        });
         on(v, 'webkitbeginfullscreen', function(){ showCtrl(); });
         on(v, 'webkitendfullscreen', function(){ showCtrl(); });
 
