@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         短剧干净播放器V5.0
 // @namespace    http://tampermonkey.net/
-// @version      8.8
+// @version      8.9
 // @description  干净播放器（多站点可配置模板）：卡片直达开播 + 追剧库 + 站点配置切换/编辑。原站为默认配置，新站用 live 模式读 blob 播放；v8.7 关闭面板归还视频元素；新增妈妈短剧（mamaduanju.com）：按 .vslot 槽位取在播源、金币集灰显跳过、真实选择器校正。
 // @author       You
 // @match        *://*/*
@@ -14,7 +14,7 @@
 (function() {
     'use strict';
 
-    const SCRIPT_VERSION = '8.8';
+    const SCRIPT_VERSION = '8.9';
     const TRACK_KEY = 'sdTrackData_v1';   // 沿用旧版追剧数据，升级不丢
     const SITES_KEY = 'sdSitesV8';        // 用户编辑后的站点配置（覆盖内置）
     const ACTIVE_KEY = 'sdActiveSite';    // 当前激活站点 id
@@ -961,8 +961,8 @@
         <div class="sd-loading" id="sdLoading">加载中...</div>
         <div id="sdPlayerBox"></div>
         <div class="sd-tap" id="sdTapPlay">▶ 点击播放</div>
+        <div class="sd-lp-badge" id="sdLpBadge">2x 快进中</div>
         <div class="sd-ctrl hide" id="sdCtrl">
-            <div class="sd-lp-badge" id="sdLpBadge">2x 快进中</div>
             <div class="sd-ctrl-row">
                 <button id="sdPlayToggle" aria-label="播放/暂停">▶</button>
                 <span class="sd-time" id="sdTimeCur">0:00</span>
@@ -1083,15 +1083,26 @@
 
     function playM3u8(m3u8, cover){
         document.getElementById('sdLoading').style.display = 'none';
-        if (dp) { try { dp.destroy(); } catch(e){} dp = null; }
+        if (dp) { try { if (dpCleanup) dpCleanup(); } catch(e){} try { dp.destroy(); } catch(e){} dp = null; }
+        let savedRate2 = 1;
+        try { const sr = GM_getValue('sdRate', 1); if (Number(sr) > 0) savedRate2 = Number(sr); } catch(e){}
         dp = new DPlayer({
             container: document.getElementById('sdPlayerBox'),
             video: {url: m3u8, type: 'hls', pic: cover || ''},
             autoplay: true,
-            theme: '#e74c3c'
+            theme: '#e74c3c',
+            setting: true,                       // 齿轮面板：倍速 / 循环 / 音量
+            hotkey: true,                        // 空格暂停、←→ 快退快进、↑↓ 音量、F 全屏
+            playbackSpeed: [0.75, 1, 1.25, 1.5, 2, 3],   // 和自绘控件的档位保持一致
+            preload: 'auto',
+            volume: 0.7,
+            screenshot: false,
+            airplay: true                        // iOS 投屏
         });
         const v = dp.video;
         if (v) {
+            try { dp.speed(savedRate2); } catch(e){}
+            attachDpExtras(dp);
             v.setAttribute('playsinline', '');
             v.setAttribute('webkit-playsinline', '');
             v.setAttribute('x5-playsinline', '');
@@ -1102,6 +1113,50 @@
         updateFollowUI();
     }
 
+    // ===== DPlayer 增强：长按 2 倍、倍速记忆 =====
+    let dpCleanup = null;
+    function attachDpExtras(d){
+        try { if (dpCleanup) dpCleanup(); } catch(e){}
+        const v = d.video;
+        if (!v) return;
+        const wrap = v.closest ? v.closest('.sd-player-wrap') : null;
+        const badge = document.getElementById('sdLpBadge');
+        const offs = [];
+        const on = function(el, ev, fn, opt){ el.addEventListener(ev, fn, opt||false); offs.push(function(){ el.removeEventListener(ev, fn, opt||false); }); };
+        let timer = null, hit = false, prev = 1, x0 = 0, y0 = 0, t0 = 0, moved = false;
+        const target = wrap || v;
+
+        on(target, 'pointerdown', function(e){
+            if (e.target.closest && e.target.closest('.dplayer-controller, #sdCtrl')) return;
+            moved = false; hit = false;
+            x0 = e.clientX; y0 = e.clientY; t0 = Date.now();
+            clearTimeout(timer);
+            timer = setTimeout(function(){
+                hit = true; prev = v.playbackRate || 1;
+                try { v.playbackRate = 2; } catch(err){}
+                if (badge) badge.classList.add('show');
+                try { if (navigator.vibrate) navigator.vibrate(20); } catch(err){}
+            }, 600);
+        });
+        on(target, 'pointermove', function(e){
+            if (Math.abs(e.clientX - x0) > 12 || Math.abs(e.clientY - y0) > 12) { moved = true; clearTimeout(timer); }
+        });
+        on(target, 'pointerup', function(){
+            clearTimeout(timer);
+            if (!hit) return;
+            hit = false;
+            try { v.playbackRate = prev; } catch(err){}
+            if (badge) badge.classList.remove('show');
+        });
+        on(target, 'pointercancel', function(){
+            clearTimeout(timer);
+            if (hit) { hit = false; try { v.playbackRate = prev; } catch(err){} if (badge) badge.classList.remove('show'); }
+        });
+        on(v, 'ratechange', function(){
+            try { GM_setValue('sdRate', v.playbackRate); } catch(e){}
+        });
+        dpCleanup = function(){ offs.forEach(function(f){ try{ f(); }catch(e){} }); clearTimeout(timer); };
+    }
     // 自动播放兜底：静音先播，失败就让用户点一下（点了才解除静音，符合浏览器策略）
     let tapVideo = null;
     function showTapPlay(on){
